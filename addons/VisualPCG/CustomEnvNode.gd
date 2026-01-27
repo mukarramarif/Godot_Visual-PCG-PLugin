@@ -5,10 +5,11 @@ var graph_edit: GraphEdit
 var add_node_menu: PopupMenu
 var toolbar: HBoxContainer
 var mouse_pos_for_new_node: Vector2
-
+## This following AST structure for nodes we will execute them i.e i figure that out
 func _ready() -> void:
 	setup_ui()
 	setup_graph_edit()
+	setup_toolbar()
 func setup_ui():
 	var vbox = VBoxContainer.new()
 	vbox.anchor_right = 1.0
@@ -23,19 +24,66 @@ func setup_ui():
 	graph_edit.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	graph_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(graph_edit)
+	
 func setup_graph_edit():
 	graph_edit.right_disconnects = true
 	graph_edit.show_zoom_label = true
 	graph_edit.minimap_enabled = true
 	graph_edit.minimap_opacity = 0.5
-	graph_edit.snap_distance = 20
+
 	
 	graph_edit.connection_request.connect(_on_connection_request)
 	graph_edit.disconnection_request.connect(_on_disconnection_request)
 	graph_edit.delete_nodes_request.connect(_on_delete_nodes_request)
 	graph_edit.popup_request.connect(_on_popup_request)
 	graph_edit.gui_input.connect(_on_graph_gui_input)
+func setup_toolbar():
+	var title_label= Label.new()
+	title_label.text = "Wave Function Collapse"
+	title_label.add_theme_font_size_override("font_size",16)
+	toolbar.add_child(title_label)
+	toolbar.add_child(VSeparator.new())
+	var new_tile_btn = Button.new()
+	new_tile_btn.text = "New Tile"
+	new_tile_btn.pressed.connect(_on_new_tile)
+	toolbar.add_child(new_tile_btn)
 	
+	var import_btn = Button.new()
+	import_btn.text = "Import Tiles"
+	import_btn.pressed.connect(_on_import_tiles)
+	toolbar.add_child(import_btn)
+	
+	toolbar.add_child(VSeparator.new())
+	
+	var save_btn = Button.new()
+	save_btn.text = "Save Tileset"
+	save_btn.pressed.connect(_on_save_tileset)
+	toolbar.add_child(save_btn)
+	
+	var load_btn = Button.new()
+	load_btn.text = "Load Tileset"
+	load_btn.pressed.connect(_on_load_tileset)
+	toolbar.add_child(load_btn)
+	
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	toolbar.add_child(spacer)
+	
+	var validate_btn = Button.new()
+	validate_btn.text = "Validate Rules"
+	validate_btn.pressed.connect(_on_validate_rules)
+	toolbar.add_child(validate_btn)
+#toolbar functions
+func _on_validate_rules():
+	return null
+func _on_save_tileset():
+	return null
+func _on_new_tile():
+	return null
+func _on_load_tileset():
+	return null
+func _on_import_tiles():
+	return null
 # Signal handlers
 func _on_connection_request(from_node: StringName, from_port: int, to_node: StringName, to_port: int):
 	# Validate connection types here if needed
