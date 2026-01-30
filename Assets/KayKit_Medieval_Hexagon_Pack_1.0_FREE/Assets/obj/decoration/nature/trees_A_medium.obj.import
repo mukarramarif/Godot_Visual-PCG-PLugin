@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b3k2g00y3jmyx"
+path="res://.godot/imported/trees_A_medium.obj-e51b6e9d156d8efc8b79e9d6f0eb822e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/trees_A_medium.obj-e51b6e9d156d8efc8b79e9d6f0eb822e.mesh"]
+
+source_file="res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/trees_A_medium.obj"
+dest_files=["res://.godot/imported/trees_A_medium.obj-e51b6e9d156d8efc8b79e9d6f0eb822e.mesh", "res://.godot/imported/trees_A_medium.obj-e51b6e9d156d8efc8b79e9d6f0eb822e.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

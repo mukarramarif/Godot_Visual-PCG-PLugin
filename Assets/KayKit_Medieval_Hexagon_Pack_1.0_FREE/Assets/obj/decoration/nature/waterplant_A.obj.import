@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://h05siba7vt8g"
+path="res://.godot/imported/waterplant_A.obj-855eaa8989b632a3096f951ca0f34c8f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/waterplant_A.obj-855eaa8989b632a3096f951ca0f34c8f.mesh"]
+
+source_file="res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/waterplant_A.obj"
+dest_files=["res://.godot/imported/waterplant_A.obj-855eaa8989b632a3096f951ca0f34c8f.mesh", "res://.godot/imported/waterplant_A.obj-855eaa8989b632a3096f951ca0f34c8f.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

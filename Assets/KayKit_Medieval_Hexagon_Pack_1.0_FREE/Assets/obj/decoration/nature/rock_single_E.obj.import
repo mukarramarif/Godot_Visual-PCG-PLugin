@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bj12po5s73kle"
+path="res://.godot/imported/rock_single_E.obj-c4c65e224fdf202c16761fa7e4b12436.mesh"
+
+[deps]
+
+files=["res://.godot/imported/rock_single_E.obj-c4c65e224fdf202c16761fa7e4b12436.mesh"]
+
+source_file="res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/rock_single_E.obj"
+dest_files=["res://.godot/imported/rock_single_E.obj-c4c65e224fdf202c16761fa7e4b12436.mesh", "res://.godot/imported/rock_single_E.obj-c4c65e224fdf202c16761fa7e4b12436.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
