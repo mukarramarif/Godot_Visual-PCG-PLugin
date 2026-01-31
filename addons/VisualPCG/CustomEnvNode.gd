@@ -10,6 +10,7 @@ var property_panel: VBoxContainer
 var tile_list: ItemList
 var current_tiles: Dictionary = {}
 var selected_tile_node: GraphNode = null
+var symmetry_enabled: bool = true 
 
 ## This following AST structure for nodes we will execute them i.e i figure that out
 func _ready() -> void:
@@ -71,6 +72,16 @@ func setup_toolbar():
 	title_label.add_theme_font_size_override("font_size",16)
 	toolbar.add_child(title_label)
 	toolbar.add_child(VSeparator.new())
+	
+	var symmetry_check = CheckButton.new()
+	symmetry_check.text = "Auto Symmetry"
+	symmetry_check.button_pressed = symmetry_enabled
+	symmetry_check.toggled.connect(_on_symmetry_toggled)
+	symmetry_check.tooltip_text = "Automatically create reverse connections (North ↔ South, etc.)"
+	toolbar.add_child(symmetry_check)
+	
+	toolbar.add_child(VSeparator.new())
+	
 	var new_tile_btn = Button.new()
 	new_tile_btn.text = "New Tile"
 	new_tile_btn.pressed.connect(_on_new_tile)
@@ -102,6 +113,9 @@ func setup_toolbar():
 	validate_btn.pressed.connect(_on_validate_rules)
 	toolbar.add_child(validate_btn)
 #toolbar functions
+func _on_symmetry_toggled(enabled: bool):
+	symmetry_enabled = enabled
+	print("Symmetry mode: %s" % ("ON" if enabled else "OFF"))
 func _on_validate_rules():
 	return null
 func _on_save_tileset():
@@ -231,18 +245,35 @@ func get_next_tile_position() -> Vector2:
 	
 	return pos
 func add_wfc_ports(node: GraphNode):
-	# 4 directions for 2D
+	# 4 directions for 2D with better labels
 	var directions = ["North", "South", "East", "West"]
 	var colors = [Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW]
+	var tooltips = [
+		"North side - connects to South",
+		"South side - connects to North",
+		"East side - connects to West",
+		"West side - connects to East"
+	]
 	
 	for i in directions.size():
+		var hbox = HBoxContainer.new()
+		
+		# Direction indicator
+		var indicator = ColorRect.new()
+		indicator.custom_minimum_size = Vector2(12, 12)
+		indicator.color = colors[i]
+		hbox.add_child(indicator)
+		
 		var label = Label.new()
-		label.text = directions[i]
-		node.add_child(label)
+		label.text = " " + directions[i]
+		label.tooltip_text = tooltips[i]
+		hbox.add_child(label)
+		
+		node.add_child(hbox)
 		node.set_slot(i + 1, true, i, colors[i], true, i, colors[i])
 
 func add_wfc_ports_3d(node: GraphNode):
-	# 6 directions for 3D
+	# 6 directions for 3D with better labels
 	var directions = ["North", "South", "East", "West", "Up", "Down"]
 	var colors = [
 		Color.RED,      # North
@@ -252,11 +283,32 @@ func add_wfc_ports_3d(node: GraphNode):
 		Color.PURPLE,   # Up
 		Color.ORANGE    # Down
 	]
+	var tooltips = [
+		"North side - connects to South",
+		"South side - connects to North",
+		"East side - connects to West",
+		"West side - connects to East",
+		"Up/Top side - connects to Down",
+		"Down/Bottom side - connects to Up"
+	]
 	
 	for i in directions.size():
+		var hbox = HBoxContainer.new()
+		
+		# Direction indicator
+		var indicator = ColorRect.new()
+		indicator.custom_minimum_size = Vector2(12, 12)
+		indicator.color = colors[i]
+		hbox.add_child(indicator)
+		
 		var label = Label.new()
-		label.text = directions[i]
-		node.add_child(label)
+		label.text = " " + directions[i]
+		label.tooltip_text = tooltips[i]
+		hbox.add_child(label)
+		
+		node.add_child(hbox)
+		
+		# Offset by 2 to account for preview and info label
 		node.set_slot(i + 2, true, i, colors[i], true, i, colors[i])
 
 func create_3d_preview(model: Node) -> Control:
@@ -271,8 +323,8 @@ func create_3d_preview(model: Node) -> Control:
 	
 	# Camera
 	var camera = Camera3D.new()
-	camera.position = Vector3(2, 2, 2)
-	camera.look_at(Vector3.ZERO)
+	camera.position = Vector3(0 ,0, 3)
+	camera.look_at_from_position(Vector3.ZERO, Vector3.ZERO)
 	viewport.add_child(camera)
 	
 	# Lighting
@@ -300,18 +352,193 @@ func create_3d_preview(model: Node) -> Control:
 
 # Signal handlers
 func _on_connection_request(from_node: StringName, from_port: int, to_node: StringName, to_port: int):
-	# Validate connection types here if needed
 	var from_node_obj = graph_edit.get_node(NodePath(from_node))
 	var to_node_obj = graph_edit.get_node(NodePath(to_node))
 	
-	# Simple type checking (you can expand this)
-	graph_edit.connect_node(from_node, from_port, to_node, to_port)
-	_on_execute_graph()
-
+	if not from_node_obj or not to_node_obj:
+		return
+	
+	# Prevent connecting to self
+	if from_node == to_node:
+		push_warning("Cannot connect a tile to itself")
+		return
+	
+	# Check if connection already exists
+	if is_connection_exists(from_node, from_port, to_node, to_port):
+		push_warning("Connection already exists")
+		return
+	
+	var is_3d = from_node_obj.get_meta("tile_type", "2d") == "3d"
+	
+	# IF SYMMETRY IS ENABLED: Validate and create reverse connection
+	if symmetry_enabled:
+		if is_valid_wfc_connection(from_port, to_port, is_3d):
+			# Create main connection
+			graph_edit.connect_node(from_node, from_port, to_node, to_port)
+			
+			# Create reverse connection
+			var reverse_port_from = get_opposite_port(to_port, is_3d)
+			var reverse_port_to = get_opposite_port(from_port, is_3d)
+			
+			if reverse_port_from >= 0 and reverse_port_to >= 0:
+				if not is_connection_exists(to_node, reverse_port_from, from_node, reverse_port_to):
+					graph_edit.connect_node(to_node, reverse_port_from, from_node, reverse_port_to)
+					print("✓ Symmetrical connection: %s(%s) ↔ %s(%s)" % [
+						from_node_obj.title, get_direction_name(from_port, is_3d),
+						to_node_obj.title, get_direction_name(to_port, is_3d)
+					])
+			
+			_on_execute_graph()
+		else:
+			push_warning("Invalid WFC connection: %s ↔ %s" % [
+				get_direction_name(from_port, is_3d),
+				get_direction_name(to_port, is_3d)
+			])
+	
+	# IF SYMMETRY IS DISABLED: Allow any connection
+	else:
+		graph_edit.connect_node(from_node, from_port, to_node, to_port)
+		print("✓ Connected: %s [%s] → %s [%s]" % [
+			from_node_obj.title, 
+			get_direction_name(from_port, is_3d),
+			to_node_obj.title, 
+			get_direction_name(to_port, is_3d)
+		])
+		_on_execute_graph()
+func is_valid_wfc_connection(from_port: int, to_port: int, is_3d:bool)->bool:
+	var opposite_pairs_2d = [
+		[0,1], # North South
+		[2.,3], # East West
+	]
+	var opposite_pairs_3d = [
+		[0,1],
+		[2,3],
+		[4,5], # up down
+	]
+	var pairs = opposite_pairs_3d if is_3d else opposite_pairs_2d
+	for pair in pairs:
+		if (from_port == pair[0] and to_port == pair[1]) or \
+		   (from_port == pair[1] and to_port == pair[0]):
+			return true
+	if from_port == to_port:
+		return true
+	return false
+func get_opposite_port(port: int, is_3d: bool)->int:
+	match port:
+		0: return 1
+		1: return 0
+		2: return 3
+		3: return 2
+		4: return 5
+		5: return 4
+	return -1
+# Get direction name from port number
+func get_direction_name(port: int, is_3d: bool) -> String:
+	var directions_3d = ["North", "South", "East", "West", "Up", "Down"]
+	var directions_2d = ["North", "South", "East", "West"]
+	
+	var dirs = directions_3d if is_3d else directions_2d
+	
+	if port >= 0 and port < dirs.size():
+		return dirs[port]
+	return "Unknown"
+func is_connection_exists(from_node: StringName, from_port: int, to_node: StringName, to_port: int) -> bool:
+	var connections = graph_edit.get_connection_list()
+	for conn in connections:
+		if conn["from_node"] == from_node and \
+		   conn["from_port"] == from_port and \
+		   conn["to_node"] == to_node and \
+		   conn["to_port"] == to_port:
+			return true
+	return false
 func _on_disconnection_request(from_node: StringName, from_port: int, to_node: StringName, to_port: int):
 	graph_edit.disconnect_node(from_node, from_port, to_node, to_port)
 	_on_execute_graph()
-
+func highlight_compatible_ports(source_node: GraphNode, source_port: int):
+	var is_3d = source_node.get_meta("tile_type", "2d") == "3d"
+	var compatible_port = get_opposite_port(source_port, is_3d)
+	
+	# Highlight all nodes' compatible ports
+	for child in graph_edit.get_children():
+		if child is GraphNode and child != source_node:
+			# You could add visual highlighting here
+			pass
+func show_connection_error(from_port: int, to_port: int, is_3d: bool):
+	var from_dir = get_direction_name(from_port, is_3d)
+	var to_dir = get_direction_name(to_port, is_3d)
+	
+	print("❌ Cannot connect %s to %s" % [from_dir, to_dir])
+	print("   Valid connections:")
+	print("   - North ↔ South")
+	print("   - East ↔ West")
+	if is_3d:
+		print("   - Up ↔ Down")
+	print("   - Same direction (e.g., North ↔ North)")
+func export_wfc_tileset() -> Dictionary:
+	var tileset = {
+		"tiles": {},
+		"symmetry_mode": symmetry_enabled,
+		"metadata": {
+			"created_at": Time.get_datetime_string_from_system(),
+			"total_tiles": 0,
+			"total_connections": 0
+		}
+	}
+	
+	# Export all tiles
+	for child in graph_edit.get_children():
+		if child is GraphNode:
+			var tile_id = child.name
+			var tile_data = {
+				"name": child.title,
+				"type": child.get_meta("tile_type", "2d"),
+				"file_path": child.get_meta("file_path", ""),
+				"format": child.get_meta("format", ""),
+				"position": {
+					"x": child.position_offset.x,
+					"y": child.position_offset.y
+				},
+				"neighbors": get_tile_neighbors(tile_id),
+				"weight": 1.0  # Default weight, can be customized
+			}
+			tileset["tiles"][tile_id] = tile_data
+			tileset["metadata"]["total_tiles"] += 1
+	
+	# Count total connections
+	tileset["metadata"]["total_connections"] = graph_edit.get_connection_list().size()
+	
+	return tileset
+func get_tile_neighbors(node_name: String) -> Dictionary:
+	var neighbors = {
+		"north": [],
+		"south": [],
+		"east": [],
+		"west": [],
+		"up": [],
+		"down": []
+	}
+	
+	var node = graph_edit.get_node_or_null(NodePath(node_name))
+	if not node:
+		return neighbors
+	
+	var is_3d = node.get_meta("tile_type", "2d") == "3d"
+	var connections = graph_edit.get_connection_list()
+	
+	# Collect all outgoing connections
+	for conn in connections:
+		if conn["from_node"] == node_name:
+			var port = conn["from_port"]
+			var direction = get_direction_name(port, is_3d).to_lower()
+			
+			# Get target tile name
+			var target_node = graph_edit.get_node_or_null(NodePath(conn["to_node"]))
+			if target_node:
+				var target_tile_name = target_node.title
+				if not neighbors[direction].has(target_tile_name):
+					neighbors[direction].append(target_tile_name)
+	
+	return neighbors
 func _on_delete_nodes_request(nodes: Array):
 	for node_name in nodes:
 		var node = graph_edit.get_node(NodePath(node_name))
@@ -332,6 +559,87 @@ func _on_graph_gui_input(event: InputEvent):
 			add_node_menu.popup()
 func _on_execute_graph():
 	print("Executing PCG Graph...")
+func _on_execute_wfc():
+	print("\n=== Executing Wave Function Collapse ===")
+	
+	# Export current tileset
+	var tileset_data = export_wfc_tileset()
+	
+	# Validate before running
+	var validation = validate_tileset(tileset_data)
+	if not validation.valid:
+		push_error("Cannot run WFC: Tileset has errors")
+		for error in validation.errors:
+			print("  ❌ " + error)
+		return
+	
+	# Print summary
+	print("Tileset Summary:")
+	print("  - Tiles: %d" % tileset_data["metadata"]["total_tiles"])
+	print("  - Connections: %d" % tileset_data["metadata"]["total_connections"])
+	print("  - Symmetry Mode: %s" % ("ON" if symmetry_enabled else "OFF"))
+	
+	# Send to WFC generator
+	#if wfc_generator:
+		#wfc_generator.run_wfc(tileset_data)
+		#print("✓ WFC data sent to generator")
+	#else:
+		## Save to file for external use
+		#save_tileset_to_file(tileset_data)
+		#print("✓ Tileset exported to file (no generator connected)")
+	
+	print("=====================================\n")
+func validate_tileset(tileset_data: Dictionary) -> Dictionary:
+	var result = {
+		"valid": true,
+		"errors": [],
+		"warnings": []
+	}
+	
+	# Check if we have tiles
+	if tileset_data["tiles"].size() == 0:
+		result.valid = false
+		result.errors.append("No tiles in tileset")
+		return result
+	
+	# Check each tile
+	for tile_id in tileset_data["tiles"]:
+		var tile = tileset_data["tiles"][tile_id]
+		
+		# Check if tile has any neighbors
+		var has_neighbors = false
+		for direction in tile["neighbors"]:
+			if tile["neighbors"][direction].size() > 0:
+				has_neighbors = true
+				break
+		
+		if not has_neighbors:
+			result.warnings.append("Tile '%s' has no neighbors" % tile["name"])
+		
+		# Validate neighbor references exist
+		for direction in tile["neighbors"]:
+			for neighbor_name in tile["neighbors"][direction]:
+				var found = false
+				for check_id in tileset_data["tiles"]:
+					if tileset_data["tiles"][check_id]["name"] == neighbor_name:
+						found = true
+						break
+				
+				if not found:
+					result.valid = false
+					result.errors.append("Tile '%s' references unknown neighbor '%s'" % [tile["name"], neighbor_name])
+	
+	return result
+func save_tileset_to_file(tileset_data: Dictionary):
+	var json_string = JSON.stringify(tileset_data, "\t")
+	var file = FileAccess.open("res://wfc_tileset_export.json", FileAccess.WRITE)
+	
+	if file:
+		file.store_string(json_string)
+		file.close()
+		print("Tileset saved to: res://wfc_tileset_export.json")
+	else:
+		push_error("Failed to save tileset file")
 func setup_properity_tab():
 	var vbox = VBoxContainer.new()
 	property_panel.add_child(vbox)
@@ -420,5 +728,6 @@ func create_tile_node(tile_name: String) -> GraphNode:
 		node.set_slot(i + 1, true, i, colors[i], true, i, colors[i])
 	
 	return node
+
 func _on_node_deselected(node: Node):
 	selected_tile_node = null
