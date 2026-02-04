@@ -166,17 +166,29 @@ func _on_files_selected(paths: PackedStringArray):
 
 			_:
 				push_warning("Unsupported file format: %s" % extension)
+func to_res_path(path: String) -> String:
+	if path.begins_with("res://"):
+		return path
+	var project_path = ProjectSettings.globalize_path("res://")
+	var normalized_abs = path.replace("\\", "/")
+	var normalized_proj = project_path.replace("\\", "/")
+	if normalized_abs.begins_with(normalized_proj):
+		var relative = normalized_abs.substr(normalized_proj.length())
+		return "res://" + relative
+	push_warning("File is outside project directory: " + path)
+	return path
 func import_3d_fbx_tile(path: String):
 	# FBX files are imported as scenes
-	var scene = load(path) as PackedScene
+	var res_path = to_res_path(path)
+	var scene = load(res_path) as PackedScene
 	if not scene:
-		push_error("Failed to load FBX: " + path)
+		push_error("Failed to load FBX: " + res_path)
 		return
 
 	var scene_root = scene.instantiate()
 	var tile_name = path.get_file().get_basename()
 
-	create_tile_node_3d(tile_name, scene_root, path, "fbx")
+	create_tile_node_3d(tile_name, scene_root, res_path, "fbx")
 	print("✓ Imported FBX tile: ", tile_name)
 func import_2d_tile(path: String):
 	var texture = load(path) as Texture2D
@@ -330,7 +342,7 @@ func create_3d_preview(model: Node) -> Control:
 	# Camera
 	var camera = Camera3D.new()
 	camera.position = Vector3(0 ,0, 3)
-	camera.look_at_from_position(Vector3.ZERO, Vector3.ZERO)
+	camera.look_at_from_position(Vector3(0,0,3), Vector3.ZERO)
 	viewport.add_child(camera)
 
 	# Lighting

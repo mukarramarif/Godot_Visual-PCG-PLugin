@@ -10,6 +10,7 @@ signal generation_failed(error: String)
 
 
 func run_wfc(tileset:Dictionary):
+	print("Starting WFC Generation")
 	tileset_data = tileset
 
 	if not valid_tileset():
@@ -22,6 +23,8 @@ func run_wfc(tileset:Dictionary):
 	var success = collapse_grid()
 
 	if success:
+		print("WFC Generation completed successfully")
+		print_grid()
 		emit_signal("generation_completed", grid)
 		return grid
 	else:
@@ -225,3 +228,35 @@ func print_grid():
 				row_str += "? "
 		print(row_str)
 	print("======================\n")
+func instantiate_tiles_in_world(parent: Node3D, tile_size: float = 2.0):
+	var instantiated_count = 0
+	var failed_count = 0
+	for y in range(grid.size()):
+		for x in range(grid[y].size()):
+			var cell = grid[y][x]
+			if not cell["tile"]:
+				continue
+
+			var tile_name = cell["tile"]
+			if not tile_templates.has(tile_name):
+				push_error("Tile template not found for tile: %s" % tile_name)
+				failed_count += 1
+				continue
+			var template = tile_templates[tile_name]
+			var filepath = template.get("file_path", "")
+			# Load and instantiate tile
+			if filepath and filepath != "":
+				var scene = load(filepath)
+				if scene is PackedScene:
+					var instance = scene.instantiate()
+					instance.position = Vector3(x * tile_size, 0, y * tile_size)
+					instance.name = "%s_%d_%d" % [tile_name, x, y]
+					parent.add_child(instance)
+					instance.owner = parent
+					_set_owner_recursive(instance, parent)
+					instantiated_count += 1
+func _set_owner_recursive(node: Node, owner: Node):
+	for child in node.get_children():
+		if child is Node:
+			child.owner = owner
+			_set_owner_recursive(child, owner)

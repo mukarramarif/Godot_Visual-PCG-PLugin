@@ -37,6 +37,7 @@ func _exit_tree() -> void:
 func _on_wfc_generation_complete(grid_res: Array) -> void:
 	print("WFC Generation Completed")
 	print("Generated grid %dx%d" % [grid_res.size(), grid_res[0].size()])
+	create_level_scene(grid_res)
 func _on_wfc_generation_failed(error: String) -> void:
 	push_error("WFC Generation Failed: %s" % error)
 	var error_dialog = AcceptDialog.new()
