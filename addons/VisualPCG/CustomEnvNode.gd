@@ -110,10 +110,10 @@ func setup_toolbar():
 	# spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# toolbar.add_child(spacer)
 
-	# var validate_btn = Button.new()
-	# validate_btn.text = "Validate Rules"
-	# validate_btn.pressed.connect(_on_validate_rules)
-	# toolbar.add_child(validate_btn)
+	var validate_btn = Button.new()
+	validate_btn.text = "Validate Rules"
+	validate_btn.pressed.connect(_on_validate_rules)
+	toolbar.add_child(validate_btn)
 	var execute_btn = Button.new()
 	execute_btn.text = "Run WFC"
 	execute_btn.pressed.connect(_on_execute_wfc)
@@ -123,7 +123,42 @@ func _on_symmetry_toggled(enabled: bool):
 	symmetry_enabled = enabled
 	print("Symmetry mode: %s" % ("ON" if enabled else "OFF"))
 func _on_validate_rules():
-	return null
+	var tileset_data = export_wfc_tileset()
+	var validation = validate_tileset(tileset_data)
+
+	# Create a popup to show validation results
+	var popup = AcceptDialog.new()
+	popup.title = "Tileset Validation"
+
+	var content = ""
+
+	if validation.valid:
+		content = "✅ Tileset is valid!\n\n"
+		popup.dialog_text = content
+	else:
+		content = "❌ Tileset has issues:\n\n"
+
+		if validation.errors.size() > 0:
+			content += "ERRORS:\n"
+			for error in validation.errors:
+				content += "  • " + error + "\n"
+			content += "\n"
+
+		if validation.warnings.size() > 0:
+			content += "WARNINGS:\n"
+			for warning in validation.warnings:
+				content += "  • " + warning + "\n"
+
+	# Add suggestions
+	if validation.isolated_tiles.size() > 0:
+		content += "\n💡 TIP: Enable 'Auto Symmetry' to automatically create bidirectional connections,\n"
+		content += "or manually add the missing reverse connections."
+
+	popup.dialog_text = content
+	add_child(popup)
+	popup.popup_centered(Vector2(500, 400))
+	popup.confirmed.connect(func(): popup.queue_free())
+
 func _on_save_tileset():
 	return null
 func _on_new_tile():
@@ -149,7 +184,7 @@ func _on_files_selected(paths: PackedStringArray):
 				#import_3d_gltf_tile(path)
 			"obj":
 				print("not implemented")
-				#import_3d_obj_tile(path)
+				import_3d_obj_tile(path)
 			"fbx":
 				import_3d_fbx_tile(path)
 			"dae":
@@ -166,6 +201,25 @@ func _on_files_selected(paths: PackedStringArray):
 
 			_:
 				push_warning("Unsupported file format: %s" % extension)
+func import_3d_obj_tile(path: String):
+	var mesh = load(path) as Mesh
+	if not mesh:
+		push_error("Failed to load OBJ mesh: " + path)
+	var tile_name = path.get_file().get_basename()
+	var mesh_instance = MeshInstance3D.new()
+	if mesh is Mesh:
+		mesh_instance.mesh = mesh
+	elif mesh is PackedScene:
+		var scene_instance = mesh.instantiate()
+		if scene_instance is MeshInstance3D:
+			mesh_instance.mesh = scene_instance.mesh
+		else:
+			push_error("Loaded scene is not a MeshInstance3D: " + path)
+			return
+	else:
+		push_error("Loaded resource is not a Mesh or Scene: " + path)
+		return
+	create_tile_node_3d(tile_name, mesh_instance, path, "obj")
 func to_res_path(path: String) -> String:
 	if path.begins_with("res://"):
 		return path
@@ -330,43 +384,86 @@ func add_wfc_ports_3d(node: GraphNode):
 		node.set_slot(i + 2, true, i, colors[i], true, i, colors[i])
 
 func create_3d_preview(model: Node) -> Control:
-	var container = VBoxContainer.new()
+	var container = SubViewportContainer.new()
 	container.custom_minimum_size = Vector2(150, 150)
+	container.stretch = true
 
 	# Create SubViewport for 3D preview
 	var viewport = SubViewport.new()
 	viewport.size = Vector2i(150, 150)
-	viewport.transparent_bg = false
+	viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.transparent_bg = false
+	viewport.own_world_3d = true
+	# Create a copy of the model for this preview
+	var model_copy: Node3D = null
+	var mesh_aabb: AABB = AABB()
 
-	# Camera
+	if model is MeshInstance3D:
+		# Duplicate the MeshInstance3D
+		model_copy = MeshInstance3D.new()
+		model_copy.mesh = model.mesh
+		if model.mesh:
+			mesh_aabb = model.mesh.get_aabb()
+	elif model is Node3D:
+		# For scene roots, duplicate the whole tree
+		model_copy = model.duplicate()
+		# Find AABB from all mesh children
+		mesh_aabb = _get_combined_aabb(model_copy)
+
+	if model_copy:
+		# Center the model
+		model_copy.position = -mesh_aabb.get_center()
+		viewport.add_child(model_copy)
+
+	# Calculate camera distance based on model size
+	var aabb_size = mesh_aabb.size
+	var max_dimension = max(aabb_size.x, max(aabb_size.y, aabb_size.z))
+	var camera_distance = max_dimension * 2.0 if max_dimension > 0 else 3.0
+
+	# Camera - position it to see the model from an angle
 	var camera = Camera3D.new()
-	camera.position = Vector3(0 ,0, 3)
-	camera.look_at_from_position(Vector3(0,0,3), Vector3.ZERO)
+
+	camera.look_at_from_position(Vector3(0,0,3),Vector3.ZERO)
 	viewport.add_child(camera)
 
 	# Lighting
 	var light = DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-45, 45, 0)
+	light.light_energy = 1.2
 	viewport.add_child(light)
 
-	# Add model
-	if model:
-		viewport.add_child(model)
-
-	# Display viewport texture
-	var texture_rect = TextureRect.new()
-	texture_rect.custom_minimum_size = Vector2(150, 150)
-	texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-
-	# Wait for viewport to render
-	await get_tree().process_frame
-	texture_rect.texture = viewport.get_texture()
+	# Add ambient light for better visibility
+	var ambient_light = DirectionalLight3D.new()
+	ambient_light.rotation_degrees = Vector3(45, -135, 0)
+	ambient_light.light_energy = 0.4
+	viewport.add_child(ambient_light)
 
 	container.add_child(viewport)
-	container.add_child(texture_rect)
 
 	return container
+
+
+func _get_combined_aabb(node: Node3D) -> AABB:
+	var combined_aabb = AABB()
+	var first = true
+
+	if node is MeshInstance3D and node.mesh:
+		combined_aabb = node.mesh.get_aabb()
+		first = false
+
+	for child in node.get_children():
+		if child is Node3D:
+			var child_aabb = _get_combined_aabb(child)
+			if child_aabb.size != Vector3.ZERO:
+				if first:
+					combined_aabb = child_aabb
+					first = false
+				else:
+					combined_aabb = combined_aabb.merge(child_aabb)
+
+	return combined_aabb
+
 
 # Signal handlers
 func _on_connection_request(from_node: StringName, from_port: int, to_node: StringName, to_port: int):
@@ -596,58 +693,89 @@ func _on_execute_wfc():
 	print("  - Tiles: %d" % tileset_data["metadata"]["total_tiles"])
 	print("  - Connections: %d" % tileset_data["metadata"]["total_connections"])
 	print("  - Symmetry Mode: %s" % ("ON" if symmetry_enabled else "OFF"))
-
+	save_tileset_to_file(tileset_data)
 	# Send to WFC generator
 	if wfc_generator:
 		wfc_generator.run_wfc(tileset_data)
 		print("WFC data sent to generator")
 	else:
-		#Save to file for external use
-		save_tileset_to_file(tileset_data)
-		print("Tileset exported to file as JSON (no generator connected)")
+		push_warning("No WFC generator assigned")
 
 	print("=====================================\n")
+
 func validate_tileset(tileset_data: Dictionary) -> Dictionary:
 	var result = {
 		"valid": true,
 		"errors": [],
-		"warnings": []
+		"warnings": [],
+		"isolated_tiles": []
 	}
 
-	# Check if we have tiles
 	if tileset_data["tiles"].size() == 0:
 		result.valid = false
 		result.errors.append("No tiles in tileset")
 		return result
 
-	# Check each tile
+	# Build lookup table
+	var tile_by_name = {}
 	for tile_id in tileset_data["tiles"]:
 		var tile = tileset_data["tiles"][tile_id]
+		tile_by_name[tile["name"]] = tile
 
-		# Check if tile has any neighbors
-		var has_neighbors = false
+	var opposite_direction = {
+		"north": "south", "south": "north",
+		"east": "west", "west": "east",
+		"up": "down", "down": "up"
+	}
+
+	# For each tile, find which tiles can ACTUALLY be placed next to it
+	# (meaning BOTH sides agree on the connection)
+	for tile_id in tileset_data["tiles"]:
+		var tile = tileset_data["tiles"][tile_id]
+		var tile_name = tile["name"]
+		var has_any_valid_neighbor = false
+
 		for direction in tile["neighbors"]:
-			if tile["neighbors"][direction].size() > 0:
-				has_neighbors = true
-				break
+			var my_allowed = tile["neighbors"][direction]
+			var opposite_dir = opposite_direction[direction]
 
-		if not has_neighbors:
-			result.warnings.append("Tile '%s' has no neighbors" % tile["name"])
-
-		# Validate neighbor references exist
-		for direction in tile["neighbors"]:
-			for neighbor_name in tile["neighbors"][direction]:
-				var found = false
-				for check_id in tileset_data["tiles"]:
-					if tileset_data["tiles"][check_id]["name"] == neighbor_name:
-						found = true
-						break
-
-				if not found:
+			for neighbor_name in my_allowed:
+				if not tile_by_name.has(neighbor_name):
+					result.errors.append("'%s' references unknown tile '%s'" % [tile_name, neighbor_name])
 					result.valid = false
-					result.errors.append("Tile '%s' references unknown neighbor '%s'" % [tile["name"], neighbor_name])
+					continue
+
+				# Check if neighbor allows ME in the opposite direction
+				var neighbor_tile = tile_by_name[neighbor_name]
+				var neighbor_allows = neighbor_tile["neighbors"].get(opposite_dir, [])
+
+				if neighbor_allows.has(tile_name):
+					has_any_valid_neighbor = true
+				else:
+					# This is a ONE-WAY connection (valid but worth noting)
+					result.warnings.append(
+						"One-way: '%s' → %s → '%s' (but '%s' doesn't connect back)" % [
+							tile_name, direction.to_upper(), neighbor_name, neighbor_name
+						]
+					)
+
+		# CRITICAL: If a tile has NO valid bidirectional neighbors, it will ALWAYS cause contradictions
+		if not has_any_valid_neighbor:
+			result.isolated_tiles.append(tile_name)
+			result.valid = false
+			result.errors.append(
+				"ISOLATED TILE: '%s' has no valid neighbors! It connects to tiles that don't connect back." % tile_name
+			)
+
+	# Check if tileset can form a connected graph
+	if result.isolated_tiles.size() > 0:
+		result.errors.append(
+			"\n💡 FIX: For each isolated tile, ensure at least one of its neighbors also lists it as a neighbor."
+		)
 
 	return result
+
+
 func save_tileset_to_file(tileset_data: Dictionary):
 	var json_string = JSON.stringify(tileset_data, "\t")
 	var file = FileAccess.open("res://wfc_tileset_export.json", FileAccess.WRITE)

@@ -231,7 +231,7 @@ func print_grid():
 func instantiate_tiles_in_world(parent: Node3D, tile_size: float = 2.0):
 	var instantiated_count = 0
 	var failed_count = 0
-	for y in range(grid.size()):
+	for y in range(grid.size()): # @TODO: parallel this processing
 		for x in range(grid[y].size()):
 			var cell = grid[y][x]
 			if not cell["tile"]:
@@ -246,15 +246,25 @@ func instantiate_tiles_in_world(parent: Node3D, tile_size: float = 2.0):
 			var filepath = template.get("file_path", "")
 			# Load and instantiate tile
 			if filepath and filepath != "":
-				var scene = load(filepath)
-				if scene is PackedScene:
-					var instance = scene.instantiate()
-					instance.position = Vector3(x * tile_size, 0, y * tile_size)
-					instance.name = "%s_%d_%d" % [tile_name, x, y]
-					parent.add_child(instance)
-					instance.owner = parent
-					_set_owner_recursive(instance, parent)
-					instantiated_count += 1
+
+				var resource = load(filepath)
+				var instance: Node3D
+				if resource is PackedScene: # fbx files
+					instance = resource.instantiate()
+
+				elif  resource is Mesh:
+					instance = MeshInstance3D.new()
+					instance.mesh = resource
+				else:
+					push_error("Failed to load scene for tile: %s at path: %s" % [tile_name, filepath])
+					failed_count += 1
+					continue
+				instance.position = Vector3(x * tile_size, 0, y * tile_size)
+				instance.name = "%s_%d_%d" % [tile_name, x, y]
+				parent.add_child(instance)
+				instance.owner = parent
+				_set_owner_recursive(instance, parent)
+				instantiated_count += 1
 func _set_owner_recursive(node: Node, owner: Node):
 	for child in node.get_children():
 		if child is Node:
