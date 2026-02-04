@@ -4,11 +4,14 @@
 
 [node name="PcgEditScene" type="Control" unique_id=43951925]
 layout_mode = 3
-anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_bottom = 1.049
+offset_left = -5.0
+offset_right = 8.0
+offset_bottom = -36.752014
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_s0nmi")
 
 [node name="LoadNodes" type="FileDialog" parent="." unique_id=1719185446]
+oversampling_override = 1.0
