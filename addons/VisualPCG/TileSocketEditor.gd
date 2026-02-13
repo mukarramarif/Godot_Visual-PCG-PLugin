@@ -34,11 +34,18 @@ var grid_size_x: int = 20
 var grid_size_y: int = 20
 var grid_size_z: int = 1
 var grid_type: String = "square"  # "square" or "hex"
+var hex_orientation: String = "pointy"  # "flat" or "pointy"
 var tile_size: float = 2.0
+var tile_spacing: float = 0.0  # Gap between tiles
+
+# Panel size settings
+var left_panel_width: int = 200
+var right_panel_width: int = 280
 
 # Direction definitions
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
-const HEX_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
+const HEX_FLAT_DIRECTIONS = ["n", "ne", "se", "s", "sw", "nw", "up", "down"]
+const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 
 const DIRECTION_COLORS = {
 	# Square
@@ -48,18 +55,25 @@ const DIRECTION_COLORS = {
 	"west": Color.YELLOW,
 	"up": Color.MAGENTA,
 	"down": Color.ORANGE,
-	# Hex
-	"ne": Color.RED,
+	# Hex flat-top
+	"n": Color.RED,
+	"s": Color.CYAN,
+	# Hex pointy-top
 	"e": Color.GREEN,
-	"se": Color.CYAN,
-	"sw": Color.BLUE,
 	"w": Color.YELLOW,
-	"nw": Color.ORANGE,
+	# Hex shared
+	"ne": Color(1.0, 0.5, 0.0),
+	"se": Color(0.0, 0.8, 0.8),
+	"sw": Color.BLUE,
+	"nw": Color(1.0, 0.0, 0.5),
 }
 
 func get_current_directions() -> Array:
 	if grid_type == "hex":
-		return HEX_DIRECTIONS
+		if hex_orientation == "flat":
+			return HEX_FLAT_DIRECTIONS
+		else:
+			return HEX_POINTY_DIRECTIONS
 	return SQUARE_DIRECTIONS
 
 func _ready():
@@ -73,11 +87,13 @@ func set_wfc_generator(generator: Node) -> void:
 func setup_ui():
 	main_hsplit = HSplitContainer.new()
 	main_hsplit.set_anchors_preset(Control.PRESET_FULL_RECT)
+	main_hsplit.split_offset = left_panel_width
 	add_child(main_hsplit)
 
 	# === LEFT PANEL ===
 	var left_panel = VBoxContainer.new()
-	left_panel.custom_minimum_size.x = 200
+	left_panel.name = "LeftPanel"
+	left_panel.custom_minimum_size.x = 150  # Minimum, but adjustable via split
 	main_hsplit.add_child(left_panel)
 
 	var library_label = Label.new()
@@ -95,10 +111,15 @@ func setup_ui():
 	tile_list.item_selected.connect(_on_tile_selected)
 	left_panel.add_child(tile_list)
 
-	# === CENTER PANEL ===
+	# === CENTER PANEL (with nested split for right panel) ===
+	var center_right_split = HSplitContainer.new()
+	center_right_split.name = "CenterRightSplit"
+	center_right_split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_hsplit.add_child(center_right_split)
+
 	var center_panel = VBoxContainer.new()
 	center_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main_hsplit.add_child(center_panel)
+	center_right_split.add_child(center_panel)
 
 	toolbar = HBoxContainer.new()
 	toolbar.custom_minimum_size.y = 40
@@ -118,9 +139,14 @@ func setup_ui():
 	center_panel.add_child(instructions)
 
 	# === RIGHT PANEL ===
+	var right_container = VBoxContainer.new()
+	right_container.name = "RightContainer"
+	right_container.custom_minimum_size.x = 280  # Minimum width
+	center_right_split.add_child(right_container)
+
 	var right_scroll = ScrollContainer.new()
-	right_scroll.custom_minimum_size.x = 280
-	main_hsplit.add_child(right_scroll)
+	right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_container.add_child(right_scroll)
 
 	properties_panel = VBoxContainer.new()
 	properties_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -129,14 +155,14 @@ func setup_ui():
 	setup_socket_editor_ui()
 
 func setup_toolbar():
-	# Grid Type selector
-	var type_label = Label.new()
-	type_label.text = "Grid:"
-	toolbar.add_child(type_label)
+	var grid_label = Label.new()
+	grid_label.text = "Grid:"
+	toolbar.add_child(grid_label)
 
 	var type_option = OptionButton.new()
 	type_option.add_item("Square", 0)
-	type_option.add_item("Hexagon", 1)
+	type_option.add_item("Hex (Pointy)", 1)
+	type_option.add_item("Hex (Flat)", 2)
 	type_option.selected = 0
 	type_option.item_selected.connect(_on_grid_type_changed)
 	toolbar.add_child(type_option)
@@ -145,6 +171,7 @@ func setup_toolbar():
 
 	# Size controls
 	var x_spin = SpinBox.new()
+	x_spin.custom_minimum_size.x = 80
 	x_spin.min_value = 1
 	x_spin.max_value = 100
 	x_spin.value = grid_size_x
@@ -153,6 +180,7 @@ func setup_toolbar():
 	toolbar.add_child(x_spin)
 
 	var y_spin = SpinBox.new()
+	y_spin.custom_minimum_size.x = 80
 	y_spin.min_value = 1
 	y_spin.max_value = 100
 	y_spin.value = grid_size_y
@@ -161,6 +189,7 @@ func setup_toolbar():
 	toolbar.add_child(y_spin)
 
 	var z_spin = SpinBox.new()
+	z_spin.custom_minimum_size.x = 80
 	z_spin.min_value = 0
 	z_spin.max_value = 20
 	z_spin.value = grid_size_z
@@ -173,13 +202,29 @@ func setup_toolbar():
 
 	# Tile size
 	var size_spin = SpinBox.new()
+	size_spin.name = "TileSizeSpin"
+	size_spin.custom_minimum_size.x = 100
 	size_spin.min_value = 0.5
 	size_spin.max_value = 10.0
 	size_spin.step = 0.1
 	size_spin.value = tile_size
 	size_spin.prefix = "Size:"
+	size_spin.tooltip_text = "Size of each tile"
 	size_spin.value_changed.connect(func(v): tile_size = v)
 	toolbar.add_child(size_spin)
+
+	# Tile spacing (gap between tiles)
+	var spacing_spin = SpinBox.new()
+	spacing_spin.name = "TileSpacingSpin"
+	spacing_spin.custom_minimum_size.x = 100
+	spacing_spin.min_value = 0.0
+	spacing_spin.max_value = 5.0
+	spacing_spin.step = 0.05
+	spacing_spin.value = tile_spacing
+	spacing_spin.prefix = "Gap:"
+	spacing_spin.tooltip_text = "Spacing/gap between tiles"
+	spacing_spin.value_changed.connect(func(v): tile_spacing = v)
+	toolbar.add_child(spacing_spin)
 
 	toolbar.add_child(VSeparator.new())
 
@@ -201,8 +246,18 @@ func setup_toolbar():
 	toolbar.add_child(run_btn)
 
 func _on_grid_type_changed(index: int):
-	grid_type = "hex" if index == 1 else "square"
-	print("Grid type changed to: ", grid_type)
+	match index:
+		0:
+			grid_type = "square"
+			hex_orientation = ""
+		1:
+			grid_type = "hex"
+			hex_orientation = "pointy"
+		2:
+			grid_type = "hex"
+			hex_orientation = "flat"
+
+	print("Grid type: %s, Hex orientation: %s" % [grid_type, hex_orientation])
 
 	# Rebuild socket editor with new directions
 	rebuild_socket_editor()
@@ -336,12 +391,20 @@ func build_presets(container: VBoxContainer):
 
 	var presets = []
 	if grid_type == "hex":
-		presets = [
-			["All -1", func(): apply_all_sockets("-1")],
-			["All 0", func(): apply_all_sockets("0")],
-			["All Sides 1S", func(): apply_hex_sides("1S")],
-			["Open Hex", func(): apply_open_hex()],
-		]
+		if hex_orientation == "flat":
+			presets = [
+				["All -1", func(): apply_all_sockets("-1")],
+				["All 0", func(): apply_all_sockets("0")],
+				["All Sides 1S", func(): apply_hex_sides_flat("1S")],
+				["Open Hex", func(): apply_open_hex()],
+			]
+		else:
+			presets = [
+				["All -1", func(): apply_all_sockets("-1")],
+				["All 0", func(): apply_all_sockets("0")],
+				["All Sides 1S", func(): apply_hex_sides_pointy("1S")],
+				["Open Hex", func(): apply_open_hex()],
+			]
 	else:
 		presets = [
 			["All -1", func(): apply_all_sockets("-1")],
@@ -375,16 +438,33 @@ func apply_all_sockets(value: String):
 		socket_inputs[direction].text = value
 		_on_socket_changed(value, direction)
 
-func apply_hex_sides(value: String):
+func apply_hex_sides_pointy(value: String):
 	if current_tile.is_empty():
 		return
 	for direction in ["ne", "e", "se", "sw", "w", "nw"]:
-		socket_inputs[direction].text = value
-		_on_socket_changed(value, direction)
-	socket_inputs["up"].text = "-1"
-	socket_inputs["down"].text = "-1"
-	_on_socket_changed("-1", "up")
-	_on_socket_changed("-1", "down")
+		if socket_inputs.has(direction):
+			socket_inputs[direction].text = value
+			_on_socket_changed(value, direction)
+	if socket_inputs.has("up"):
+		socket_inputs["up"].text = "-1"
+		_on_socket_changed("-1", "up")
+	if socket_inputs.has("down"):
+		socket_inputs["down"].text = "-1"
+		_on_socket_changed("-1", "down")
+
+func apply_hex_sides_flat(value: String):
+	if current_tile.is_empty():
+		return
+	for direction in ["n", "ne", "se", "s", "sw", "nw"]:
+		if socket_inputs.has(direction):
+			socket_inputs[direction].text = value
+			_on_socket_changed(value, direction)
+	if socket_inputs.has("up"):
+		socket_inputs["up"].text = "-1"
+		_on_socket_changed("-1", "up")
+	if socket_inputs.has("down"):
+		socket_inputs["down"].text = "-1"
+		_on_socket_changed("-1", "down")
 
 func apply_open_hex():
 	if current_tile.is_empty():
@@ -523,13 +603,17 @@ func get_opposite_direction(direction: String) -> String:
 		"south": return "north"
 		"east": return "west"
 		"west": return "east"
-		# Hex
+		# Hex flat-top (n/s)
+		"n": return "s"
+		"s": return "n"
+		# Hex shared directions
 		"ne": return "sw"
 		"sw": return "ne"
-		"e": return "w"
-		"w": return "e"
 		"se": return "nw"
 		"nw": return "se"
+		# Hex pointy-top (e/w)
+		"e": return "w"
+		"w": return "e"
 		# Vertical
 		"up": return "down"
 		"down": return "up"
@@ -724,8 +808,9 @@ func _on_save_tileset():
 func _save_to_file(path: String):
 	var data = {
 		"grid_type": grid_type,
-		"grid_size": {"x": grid_size_x, "y": grid_size_y, "z": grid_size_z},
+		"hex_orientation": hex_orientation,
 		"tile_size": tile_size,
+		"tile_spacing": tile_spacing,
 		"tiles": tile_library
 	}
 	var file = FileAccess.open(path, FileAccess.WRITE)
@@ -757,18 +842,33 @@ func _load_from_file(path: String):
 	var data = json.get_data()
 
 	grid_type = data.get("grid_type", "square")
+	hex_orientation = data.get("hex_orientation", "pointy")
 	grid_size_x = data.get("grid_size", {}).get("x", 20)
 	grid_size_y = data.get("grid_size", {}).get("y", 20)
 	grid_size_z = data.get("grid_size", {}).get("z", 1)
 	tile_size = data.get("tile_size", 2.0)
+	tile_spacing = data.get("tile_spacing", 0.0)
 	tile_library = data.get("tiles", {})
 
+	# Update toolbar spinbox values
+	_update_toolbar_spinboxes()
+
+	print("Loaded tileset - Grid: %s, Hex orientation: %s, Spacing: %s" % [grid_type, hex_orientation, tile_spacing])
 	rebuild_socket_editor()
 	update_tile_list()
 
 	for child in get_children():
 		if child is FileDialog:
 			child.queue_free()
+
+func _update_toolbar_spinboxes():
+	# Update the tile size and spacing spinboxes in the toolbar
+	for child in toolbar.get_children():
+		if child is SpinBox:
+			if child.name == "TileSizeSpin":
+				child.value = tile_size
+			elif child.name == "TileSpacingSpin":
+				child.value = tile_spacing
 
 # ===== WFC =====
 
@@ -782,7 +882,9 @@ func _on_run_wfc():
 
 	var tileset_data = convert_sockets_to_neighbors()
 	tileset_data["grid_type"] = grid_type
+	tileset_data["hex_orientation"] = hex_orientation
 	tileset_data["tile_size"] = tile_size
+	tileset_data["tile_spacing"] = tile_spacing
 
 	wfc_generator.grid_size = Vector3i(grid_size_x, grid_size_y, grid_size_z)
 	wfc_generator.run_wfc(tileset_data)
