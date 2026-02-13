@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dn12yylusitmd"]
 
-[ext_resource type="Script" uid="uid://cshpepg5fyj0v" path="res://addons/VisualPCG/CustomEnvNode.gd" id="1_s0nmi"]
+[ext_resource type="Script" uid="uid://85eptrtco3ur" path="res://addons/VisualPCG/TileSocketEditor.gd" id="1_s0nmi"]
 
 [node name="PcgEditScene" type="Control" unique_id=43951925]
 layout_mode = 3

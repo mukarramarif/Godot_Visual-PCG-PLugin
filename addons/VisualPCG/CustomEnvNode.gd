@@ -11,6 +11,14 @@ var tile_list: ItemList
 var current_tiles: Dictionary = {}
 var selected_tile_node: GraphNode = null
 var symmetry_enabled: bool = true
+
+# Grid size settings
+var grid_size_x: int = 20
+var grid_size_y: int = 20
+var grid_size_z: int = 3
+var grid_x_spinbox: SpinBox
+var grid_y_spinbox: SpinBox
+var grid_z_spinbox: SpinBox
 func set_wfc_generator(generator: Node) -> void:
 	wfc_generator = generator
 	print("WFC Generator set: ", wfc_generator)
@@ -28,9 +36,9 @@ func setup_ui():
 	add_child(hsplit)
 
 	# Left side: Tile library
-	tile_library_panel = Panel.new()
-	tile_library_panel.custom_minimum_size.x = 250
-	hsplit.add_child(tile_library_panel)
+	# tile_library_panel = Panel.new()
+	# tile_library_panel.custom_minimum_size.x = 250
+	# hsplit.add_child(tile_library_panel)
 
 	# Center: Graph edit (main work area)
 	var center_vbox = VBoxContainer.new()
@@ -69,11 +77,6 @@ func setup_graph_edit():
 	graph_edit.node_selected.connect(_on_node_selected)
 	graph_edit.node_deselected.connect(_on_node_deselected)
 func setup_toolbar():
-	var title_label= Label.new()
-	title_label.text = "Wave Function Collapse"
-	title_label.add_theme_font_size_override("font_size",16)
-	toolbar.add_child(title_label)
-	toolbar.add_child(VSeparator.new())
 
 	var symmetry_check = CheckButton.new()
 	symmetry_check.text = "Auto Symmetry"
@@ -114,6 +117,55 @@ func setup_toolbar():
 	validate_btn.text = "Validate Rules"
 	validate_btn.pressed.connect(_on_validate_rules)
 	toolbar.add_child(validate_btn)
+
+	toolbar.add_child(VSeparator.new())
+
+	# Grid size controls
+	var grid_label = Label.new()
+	grid_label.text = "Grid Size:"
+	toolbar.add_child(grid_label)
+
+	# X dimension
+	var x_label = Label.new()
+	x_label.text = "X:"
+	toolbar.add_child(x_label)
+
+	grid_x_spinbox = SpinBox.new()
+	grid_x_spinbox.min_value = 1
+	grid_x_spinbox.max_value = 100
+	grid_x_spinbox.value = grid_size_x
+	grid_x_spinbox.tooltip_text = "Grid width (X axis)"
+	grid_x_spinbox.value_changed.connect(_on_grid_x_changed)
+	toolbar.add_child(grid_x_spinbox)
+
+	# Y dimension
+	var y_label = Label.new()
+	y_label.text = "Y:"
+	toolbar.add_child(y_label)
+
+	grid_y_spinbox = SpinBox.new()
+	grid_y_spinbox.min_value = 1
+	grid_y_spinbox.max_value = 100
+	grid_y_spinbox.value = grid_size_y
+	grid_y_spinbox.tooltip_text = "Grid depth (Y axis)"
+	grid_y_spinbox.value_changed.connect(_on_grid_y_changed)
+	toolbar.add_child(grid_y_spinbox)
+
+	# Z dimension (layers/height)
+	var z_label = Label.new()
+	z_label.text = "Z:"
+	toolbar.add_child(z_label)
+
+	grid_z_spinbox = SpinBox.new()
+	grid_z_spinbox.min_value = 0
+	grid_z_spinbox.max_value = 20
+	grid_z_spinbox.value = grid_size_z
+	grid_z_spinbox.tooltip_text = "Grid height/layers (Z axis - vertical)"
+	grid_z_spinbox.value_changed.connect(_on_grid_z_changed)
+	toolbar.add_child(grid_z_spinbox)
+
+	toolbar.add_child(VSeparator.new())
+
 	var execute_btn = Button.new()
 	execute_btn.text = "Run WFC"
 	execute_btn.pressed.connect(_on_execute_wfc)
@@ -122,6 +174,18 @@ func setup_toolbar():
 func _on_symmetry_toggled(enabled: bool):
 	symmetry_enabled = enabled
 	print("Symmetry mode: %s" % ("ON" if enabled else "OFF"))
+
+func _on_grid_x_changed(value: float):
+	grid_size_x = int(value)
+	print("Grid X size: %d" % grid_size_x)
+
+func _on_grid_y_changed(value: float):
+	grid_size_y = int(value)
+	print("Grid Y size: %d" % grid_size_y)
+
+func _on_grid_z_changed(value: float):
+	grid_size_z = int(value)
+	print("Grid Z size (layers): %d" % grid_size_z)
 func _on_validate_rules():
 	var tileset_data = export_wfc_tileset()
 	var validation = validate_tileset(tileset_data)
@@ -643,17 +707,31 @@ func get_tile_neighbors(node_name: String) -> Dictionary:
 	# Collect all outgoing connections
 	for conn in connections:
 		if conn["from_node"] == node_name:
-			var port = conn["from_port"]
-			var direction = get_direction_name(port, is_3d).to_lower()
+			var from_port = conn["from_port"]
+			var to_port = conn["to_port"]
+			var from_direction = get_direction_name(from_port, is_3d).to_lower()
+			var to_direction = get_direction_name(to_port, is_3d).to_lower()
 
 			# Get target tile name
 			var target_node = graph_edit.get_node_or_null(NodePath(conn["to_node"]))
 			if target_node:
 				var target_tile_name = target_node.title
-				if not neighbors[direction].has(target_tile_name):
-					neighbors[direction].append(target_tile_name)
+				# Store as object with tile name and which direction it connects via
+				var connection_info = {
+					"tile": target_tile_name,
+					"via": to_direction  # The direction on the TARGET tile
+				}
+				# Check if this exact connection already exists
+				var exists = false
+				for existing in neighbors[from_direction]:
+					if existing is Dictionary and existing["tile"] == target_tile_name and existing["via"] == to_direction:
+						exists = true
+						break
+				if not exists:
+					neighbors[from_direction].append(connection_info)
 
 	return neighbors
+
 func _on_delete_nodes_request(nodes: Array):
 	for node_name in nodes:
 		var node = graph_edit.get_node(NodePath(node_name))
@@ -696,6 +774,9 @@ func _on_execute_wfc():
 	save_tileset_to_file(tileset_data)
 	# Send to WFC generator
 	if wfc_generator:
+		# Set grid size before running
+		wfc_generator.grid_size = Vector3i(grid_size_x, grid_size_y, grid_size_z)
+		print("  - Grid Size: %dx%dx%d" % [grid_size_x, grid_size_y, grid_size_z])
 		wfc_generator.run_wfc(tileset_data)
 		print("WFC data sent to generator")
 	else:
@@ -710,7 +791,7 @@ func validate_tileset(tileset_data: Dictionary) -> Dictionary:
 		"warnings": [],
 		"isolated_tiles": []
 	}
-
+	print(tileset_data)
 	if tileset_data["tiles"].size() == 0:
 		result.valid = false
 		result.errors.append("No tiles in tileset")
@@ -722,12 +803,6 @@ func validate_tileset(tileset_data: Dictionary) -> Dictionary:
 		var tile = tileset_data["tiles"][tile_id]
 		tile_by_name[tile["name"]] = tile
 
-	var opposite_direction = {
-		"north": "south", "south": "north",
-		"east": "west", "west": "east",
-		"up": "down", "down": "up"
-	}
-
 	# For each tile, find which tiles can ACTUALLY be placed next to it
 	# (meaning BOTH sides agree on the connection)
 	for tile_id in tileset_data["tiles"]:
@@ -737,25 +812,48 @@ func validate_tileset(tileset_data: Dictionary) -> Dictionary:
 
 		for direction in tile["neighbors"]:
 			var my_allowed = tile["neighbors"][direction]
-			var opposite_dir = opposite_direction[direction]
 
-			for neighbor_name in my_allowed:
+			for neighbor_entry in my_allowed:
+				# Handle new dictionary format: {"tile": "name", "via": "direction"}
+				var neighbor_name: String
+				var target_direction: String
+
+				if neighbor_entry is Dictionary:
+					neighbor_name = neighbor_entry["tile"]
+					target_direction = neighbor_entry["via"]
+				else:
+					# Legacy string format - assume opposite direction
+					neighbor_name = neighbor_entry
+					target_direction = _get_opposite_direction(direction)
+
 				if not tile_by_name.has(neighbor_name):
 					result.errors.append("'%s' references unknown tile '%s'" % [tile_name, neighbor_name])
 					result.valid = false
 					continue
 
-				# Check if neighbor allows ME in the opposite direction
+				# Check if neighbor allows ME from the target direction
 				var neighbor_tile = tile_by_name[neighbor_name]
-				var neighbor_allows = neighbor_tile["neighbors"].get(opposite_dir, [])
+				var neighbor_allows = neighbor_tile["neighbors"].get(target_direction, [])
 
-				if neighbor_allows.has(tile_name):
-					has_any_valid_neighbor = true
-				else:
+				# Check if this tile is in the neighbor's allowed list
+				var neighbor_allows_me = false
+				for back_entry in neighbor_allows:
+					var back_tile_name: String
+					if back_entry is Dictionary:
+						back_tile_name = back_entry["tile"]
+					else:
+						back_tile_name = back_entry
+
+					if back_tile_name == tile_name:
+						neighbor_allows_me = true
+						has_any_valid_neighbor = true
+						break
+
+				if not neighbor_allows_me:
 					# This is a ONE-WAY connection (valid but worth noting)
 					result.warnings.append(
-						"One-way: '%s' → %s → '%s' (but '%s' doesn't connect back)" % [
-							tile_name, direction.to_upper(), neighbor_name, neighbor_name
+						"One-way: '%s' [%s] → '%s' [%s] (but '%s' doesn't connect back)" % [
+							tile_name, direction.to_upper(), neighbor_name, target_direction.to_upper(), neighbor_name
 						]
 					)
 
@@ -774,6 +872,17 @@ func validate_tileset(tileset_data: Dictionary) -> Dictionary:
 		)
 
 	return result
+
+func _get_opposite_direction(direction: String) -> String:
+	match direction:
+		"north": return "south"
+		"south": return "north"
+		"east": return "west"
+		"west": return "east"
+		"up": return "down"
+		"down": return "up"
+	return direction
+
 
 
 func save_tileset_to_file(tileset_data: Dictionary):

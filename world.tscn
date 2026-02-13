@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://b5dvpyp2mi0io"]
+
+[ext_resource type="Script" uid="uid://b781fx5v4f4ou" path="res://world.gd" id="1_f3sb7"]
+[ext_resource type="PackedScene" uid="uid://dgrj7adbm00gt" path="res://generated_levels/level_2026-02-04T11-51-16.tscn" id="2_tlwt5"]
+[ext_resource type="PackedScene" uid="uid://ngb0mktyxxne" path="res://generated_levels/level_2026-02-04T11-35-28.tscn" id="3_aqk2v"]
+
+[node name="World" type="Node3D" unique_id=989255957]
+script = ExtResource("1_f3sb7")
+
+[node name="GeneratedLevel" parent="." unique_id=1735058227 instance=ExtResource("2_tlwt5")]
+
+[node name="GeneratedLevel2" parent="." unique_id=1578996403 instance=ExtResource("3_aqk2v")]
+transform = Transform3D(0.99996614, -0.008220553, 0, 0.008220553, 0.99996614, 0, 0, 0, 0.55658203, -40.17606, 0, 0)
