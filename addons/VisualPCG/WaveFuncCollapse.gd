@@ -19,7 +19,7 @@ var problematic_tiles: Dictionary = {}  # tile_name -> count of issues
 signal generation_completed(grid_res: Array)
 signal generation_failed(error: Dictionary)
 
-const HEX_FLAT_DIRECTIONS = ["n", "ne", "se", "s", "sw", "nw", "up", "down"]
+const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
@@ -548,22 +548,22 @@ func get_flat_hex_neighbors(pos: Vector3i) -> Array:
 	if is_odd_row:
 		# Odd rows: shifted right
 		offsets = [
+			{"dx": 0, "dy": -1, "dir": "nw"},   # NW: up
 			{"dx": 1, "dy": -1, "dir": "ne"},   # NE: up-right
-			{"dx": 1, "dy": 0, "dir": "se"},    # SE: right
-			{"dx": 0, "dy": 1, "dir": "s"},     # S: down
-			{"dx": -1, "dy": 0, "dir": "sw"},   # SW: left
-			{"dx": -1, "dy": -1, "dir": "nw"},  # NW: up-left (but odd row shifted)
-			{"dx": 0, "dy": -1, "dir": "n"},    # N: up
+			{"dx": 1, "dy": 0, "dir": "e"},     # E: right
+			{"dx": 0, "dy": 1, "dir": "se"},    # SE: down
+			{"dx": -1, "dy": 0, "dir": "w"},    # W: left
+			{"dx": -1, "dy": -1, "dir": "sw"},  # SW: up-left
 		]
 	else:
 		# Even rows: not shifted
 		offsets = [
-			{"dx": 1, "dy": 0, "dir": "ne"},    # NE: right
-			{"dx": 1, "dy": 1, "dir": "se"},    # SE: down-right
-			{"dx": 0, "dy": 1, "dir": "s"},     # S: down
+			{"dx": -1, "dy": -1, "dir": "nw"},  # NW: up-left
+			{"dx": 0, "dy": -1, "dir": "ne"},   # NE: up
+			{"dx": 1, "dy": 0, "dir": "e"},     # E: right
+			{"dx": 0, "dy": 1, "dir": "se"},    # SE: down
 			{"dx": -1, "dy": 1, "dir": "sw"},   # SW: down-left
-			{"dx": -1, "dy": 0, "dir": "nw"},   # NW: left
-			{"dx": 0, "dy": -1, "dir": "n"},    # N: up
+			{"dx": -1, "dy": 0, "dir": "w"},    # W: left
 		]
 
 	for offset in offsets:
@@ -778,47 +778,63 @@ func hex_to_world_position(x: int, y: int, z: int, hex_size: float, layer_height
 		return pointy_hex_to_world(x, y, z, hex_size, layer_height, spacing)
 
 func flat_hex_to_world(x: int, y: int, z: int, hex_size: float, layer_height: float, spacing: float = 0.0) -> Vector3:
-	# Flat-top hexagon layout
-	var hex_width = hex_size * sqrt(1.0)
-	var hex_height = hex_size * 1.5
-	# Horizontal spacing: full width + gap
-	var horiz_spacing = hex_width + spacing
+	# Flat-top hexagon layout using outer radius (circumradius)
+	# hex_size = outer radius (center to vertex)
+	# For KayKit tiles: outer_radius = 1.1547, which gives width=2.0, height=2.309
 
-	# Vertical spacing: 3/4 of height + gap
-	var vert_spacing = hex_height * 0.50 + spacing
+	var outer_radius = hex_size
 
-	# Odd ROWS offset horizontally by half width
+	# For flat-top hex:
+	# Width (edge to edge, horizontal) = sqrt(3) * outer_radius
+	# Height (vertex to vertex, vertical) = 2 * outer_radius
+	var hex_width = sqrt(3.0) * outer_radius
+	var hex_height = 2.0 * outer_radius
+
+	# Horizontal distance between adjacent column centers = width
+	var horiz_step = hex_width + spacing
+
+	# Vertical distance between adjacent row centers = 3/4 of height
+	var vert_step = (hex_height * 0.75) + spacing
+
+	# Odd rows are offset to the right by half the horizontal step
 	var x_offset = 0.0
 	if (y % 2) == 1:
-		x_offset = (hex_width + spacing) * 0.5
+		x_offset = horiz_step * 0.5
 
-	var world_x = x * horiz_spacing + x_offset
+	var world_x = x * horiz_step + x_offset
 	var world_y = z * layer_height
-	var world_z = y * vert_spacing
+	var world_z = y * vert_step
 
 	return Vector3(world_x, world_y, world_z)
 
 func pointy_hex_to_world(x: int, y: int, z: int, hex_size: float, layer_height: float, spacing: float = 0.0) -> Vector3:
 	# Pointy-top hexagon layout
-	var hex_width = 2.0 * hex_size
-	var hex_height = sqrt(3.0) * hex_size
+	# In Godot: X = right, Y = up (height), Z = forward (depth)
 
-	# Horizontal spacing: 3/4 of width + gap
-	var horiz_spacing = hex_width * 0.75 + spacing
+	var hex_width = sqrt(3.0) * hex_size   # Width (vertex to vertex)
+	var hex_height = 2.0 * hex_size         # Height (edge to edge)
 
-	# Vertical spacing: full height + gap
-	var vert_spacing = hex_height + spacing
+	# Horizontal spacing = 3/4 of width (columns interlock)
+	var horiz_step = (hex_width * 0.75) + spacing
 
-	# Odd COLUMNS offset vertically by half height
+	# Vertical spacing = full height
+	var vert_step = hex_height + spacing
+
+	# Odd columns offset by half height
 	var z_offset = 0.0
 	if (x % 2) == 1:
-		z_offset = (hex_height + spacing) * 0.5
+		z_offset = hex_height * 0.5
 
-	var world_x = x * horiz_spacing
+	var world_x = x * horiz_step
 	var world_y = z * layer_height
-	var world_z = y * vert_spacing + z_offset
+	var world_z = y * vert_step + z_offset
 
 	return Vector3(world_x, world_y, world_z)
+
+
+
+
+
 
 func _set_owner_recursive(node: Node, owner: Node):
 	for child in node.get_children():

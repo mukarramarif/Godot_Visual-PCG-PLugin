@@ -34,7 +34,7 @@ var grid_size_x: int = 20
 var grid_size_y: int = 20
 var grid_size_z: int = 1
 var grid_type: String = "square"  # "square" or "hex"
-var hex_orientation: String = "pointy"  # "flat" or "pointy"
+var hex_orientation: String = "flat"  # "flat" or "pointy"
 var tile_size: float = 2.0
 var tile_spacing: float = 0.0  # Gap between tiles
 
@@ -44,7 +44,7 @@ var right_panel_width: int = 280
 
 # Direction definitions
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
-const HEX_FLAT_DIRECTIONS = ["n", "ne", "se", "s", "sw", "nw", "up", "down"]
+const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 
 const DIRECTION_COLORS = {
@@ -105,6 +105,11 @@ func setup_ui():
 	import_btn.text = "Import Tiles"
 	import_btn.pressed.connect(_on_import_tiles)
 	left_panel.add_child(import_btn)
+
+	var remove_btn = Button.new()
+	remove_btn.text = "Remove Tile"
+	remove_btn.pressed.connect(_on_remove_tile)
+	left_panel.add_child(remove_btn)
 
 	tile_list = ItemList.new()
 	tile_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -738,6 +743,31 @@ func update_tile_list():
 	for tile_name in tile_library:
 		tile_list.add_item("🎲 " + tile_name)
 
+func _on_remove_tile():
+	var selected_items = tile_list.get_selected_items()
+	if selected_items.is_empty():
+		show_message("No tile selected to remove.")
+		return
+
+	var index = selected_items[0]
+	var item_text = tile_list.get_item_text(index)
+	var tile_name = item_text.substr(2).strip_edges()
+
+	if tile_library.has(tile_name):
+		tile_library.erase(tile_name)
+		print("Removed tile: ", tile_name)
+
+	# Clear preview if the removed tile was being displayed
+	if current_tile == tile_name:
+		current_tile = ""
+		if current_tile_instance:
+			current_tile_instance.queue_free()
+			current_tile_instance = null
+		update_socket_inputs()
+		update_compatibility_display()
+
+	update_tile_list()
+
 func _on_tile_selected(index: int):
 	var item_text = tile_list.get_item_text(index)
 	current_tile = item_text.substr(2).strip_edges()
@@ -869,6 +899,14 @@ func _update_toolbar_spinboxes():
 				child.value = tile_size
 			elif child.name == "TileSpacingSpin":
 				child.value = tile_spacing
+		elif child is OptionButton:
+			# Update grid type dropdown based on loaded values
+			if grid_type == "square":
+				child.selected = 0
+			elif grid_type == "hex" and hex_orientation == "pointy":
+				child.selected = 1
+			elif grid_type == "hex" and hex_orientation == "flat":
+				child.selected = 2
 
 # ===== WFC =====
 
