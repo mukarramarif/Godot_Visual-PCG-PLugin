@@ -276,7 +276,7 @@ func create_default_sockets() -> Dictionary:
 	for direction in get_current_directions():
 		sockets[direction] = "-1"
 	return sockets
-
+## Setups the UI on right side
 func setup_socket_editor_ui():
 	var title = Label.new()
 	title.text = "Socket Editor"
@@ -509,6 +509,7 @@ func _on_socket_changed(new_text: String, direction: String):
 		return
 	tile_library[current_tile]["sockets"][direction] = new_text.strip_edges()
 	update_compatibility_display()
+	_update_highlight_faces()
 
 func _on_weight_changed(value: float):
 	if current_tile.is_empty() or not tile_library.has(current_tile):
@@ -624,8 +625,7 @@ func get_opposite_direction(direction: String) -> String:
 		"down": return "up"
 	return direction
 
-# ===== 3D PREVIEW =====
-# (same as before - setup_3d_preview, update_camera_position, etc.)
+# ===== 3D PREVIEW ===== #
 
 func setup_3d_preview():
 	viewport = SubViewport.new()
@@ -693,7 +693,7 @@ func _on_viewport_input(event: InputEvent):
 		camera_angle_v = clamp(camera_angle_v - delta.y * 0.5, -89, 89)
 		update_camera_position()
 
-# ===== TILE MANAGEMENT =====
+# ===== TILE MANAGEMENT ===== #
 
 func _on_import_tiles():
 	var file_dialog = FileDialog.new()
@@ -807,8 +807,24 @@ func load_tile_preview(tile_name: String):
 	current_tile_instance.position = Vector3.ZERO
 	preview_root.add_child(current_tile_instance)
 	_add_highlight_to_preview()
+	_update_highlight_faces()
 	auto_fit_camera()
+func _update_highlight_faces():
+	if not highlight_cube:
+		return
+	if current_tile.is_empty() or not tile_library.has(current_tile):
+		highlight_cube.set_socket_faces({})
+		return
 
+	var sockets = tile_library[current_tile].get("sockets", {})
+	var faces: Dictionary = {}
+	for direction in get_current_directions():
+		var socket_val = sockets.get(direction, "-1")
+		faces[direction] = {
+			"color": DIRECTION_COLORS.get(direction, Color.WHITE),
+			"socket": socket_val,
+		}
+	highlight_cube.set_socket_faces(faces)
 func auto_fit_camera():
 	if not current_tile_instance:
 		return
@@ -831,7 +847,7 @@ func get_combined_aabb(node: Node3D) -> AABB:
 				first = false
 	return combined
 
-# ===== SAVE/LOAD =====
+# ===== SAVE/LOAD ===== #
 
 func _on_save_tileset():
 	var dialog = FileDialog.new()
@@ -917,7 +933,7 @@ func _update_toolbar_spinboxes():
 			elif grid_type == "hex" and hex_orientation == "flat":
 				child.selected = 2
 
-# ===== WFC =====
+# ===== WFC ===== #
 
 func _on_run_wfc():
 	if not wfc_generator:
@@ -952,7 +968,7 @@ func convert_sockets_to_neighbors() -> Dictionary:
 		tile_data["neighbors"] = neighbors
 		result["tiles"][tile_name] = tile_data
 	return result
-
+# Display a simple message dialog
 func show_message(text: String):
 	var dialog = AcceptDialog.new()
 	dialog.dialog_text = text

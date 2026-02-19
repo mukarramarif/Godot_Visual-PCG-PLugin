@@ -1,3 +1,7 @@
+
+# Actual WFC implementation with error handling
+# It allows for both 3D square and hex grids while telling the user what
+# went wrong if wfc fails
 extends Node
 
 class_name WaveFunctionCollapse
@@ -778,15 +782,7 @@ func hex_to_world_position(x: int, y: int, z: int, hex_size: float, layer_height
 		return pointy_hex_to_world(x, y, z, hex_size, layer_height, spacing)
 
 func flat_hex_to_world(x: int, y: int, z: int, hex_size: float, layer_height: float, spacing: float = 0.0) -> Vector3:
-	# Flat-top hexagon layout using outer radius (circumradius)
-	# hex_size = outer radius (center to vertex)
-	# For KayKit tiles: outer_radius = 1.1547, which gives width=2.0, height=2.309
-
 	var outer_radius = hex_size
-
-	# For flat-top hex:
-	# Width (edge to edge, horizontal) = sqrt(3) * outer_radius
-	# Height (vertex to vertex, vertical) = 2 * outer_radius
 	var hex_width = sqrt(3.0) * outer_radius
 	var hex_height = 2.0 * outer_radius
 

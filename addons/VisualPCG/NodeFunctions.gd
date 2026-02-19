@@ -1,3 +1,5 @@
+
+## Currently unused, but this is where I will put functions that are used by multiple nodes, such as the file dialog for importing assets.
 extends RefCounted
 
 class_name NodeFunctions
