@@ -16,7 +16,7 @@ var viewport: SubViewport
 var properties_panel: VBoxContainer
 var toolbar: HBoxContainer
 var socket_inputs: Dictionary = {}
-
+var highlight_cube: HighlighCube = null
 # 3D Preview
 var preview_root: Node3D
 var preview_camera: Camera3D
@@ -774,7 +774,15 @@ func _on_tile_selected(index: int):
 	load_tile_preview(current_tile)
 	update_socket_inputs()
 	update_compatibility_display()
-
+func _add_highlight_to_preview():
+	if highlight_cube:
+		highlight_cube.queue_free()
+	highlight_cube = HighlighCube.new()
+	var aabb = get_combined_aabb(current_tile_instance)
+	highlight_cube.extents = aabb.size / 2.0
+	highlight_cube.position = aabb.get_center()
+	highlight_cube.highlight_color = Color(0, 1, 1, 0.4)
+	preview_root.add_child(highlight_cube)
 func load_tile_preview(tile_name: String):
 	if current_tile_instance:
 		current_tile_instance.queue_free()
@@ -798,6 +806,7 @@ func load_tile_preview(tile_name: String):
 
 	current_tile_instance.position = Vector3.ZERO
 	preview_root.add_child(current_tile_instance)
+	_add_highlight_to_preview()
 	auto_fit_camera()
 
 func auto_fit_camera():
