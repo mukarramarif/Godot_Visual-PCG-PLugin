@@ -44,4 +44,5 @@ This is currently a alpha build of the plugin developed initially as a indepdent
 ## Special Thanks
 - [Godot Engine](https://godotengine.org/) for providing an amazing game engine
 - [Professor Urban](https://engineering.lehigh.edu/faculty/stephen-lee-urban) for his guidance and support throughout the development of this plugin
-- []
+- [MarkovJunior](https://github.com/mxgmn/MarkovJunior) for the original WFC algorithm implementation
+- [Marian](https://marian42.de/article/wfc/) for the infinite castle implementation of the WFC algorithm
