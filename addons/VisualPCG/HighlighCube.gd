@@ -7,13 +7,13 @@ class_name HighlighCube
 
 var _mesh_instance: MeshInstance3D
 var _material: StandardMaterial3D
-
+var shape: int = Shapes.CUBE
 # --- Per-face socket coloring ---
 # Stores direction -> { "color": Color, "socket": String }
 var socket_faces: Dictionary = {}
 # Holds references to the face MeshInstance3D nodes so we can clear them
 var _face_instances: Dictionary = {}
-
+enum Shapes { CUBE, HEX }
 # Face geometry definitions for a unit cube
 # "offset_axis" and "rotation" orient the quad onto the correct face
 # QuadMesh default: lies in XY plane, normal facing +Z
@@ -48,11 +48,70 @@ const FACE_DEFS = {
 		"rotation": Vector3(-90, 0, 0),
 		"size_axes": [0, 2],
 	},
-}
 
+}
+const HEX_FACE_DEFS = {
+	"south": {
+		"offset_dir": Vector3(0, 0, 1),
+		"rotation": Vector3(0, 0, 0),
+		"size_axes": [0, 1],        # quad uses extents.x and extents.y
+	},
+	"north": {
+		"offset_dir": Vector3(0, 0, -1),
+		"rotation": Vector3(0, 180, 0),
+		"size_axes": [0, 1],
+	},
+	"east": {
+		"offset_dir": Vector3(1, 0, 0),
+		"rotation": Vector3(0, -90, 0),
+		"size_axes": [2, 1],        # quad uses extents.z
+	},
+	"west": {
+		"offset_dir": Vector3(-1, 0, 0),
+		"rotation": Vector3(0, 90, 0),
+		"size_axes": [2, 1],
+	},
+	"up": {
+		"offset_dir": Vector3(0, 1, 0),
+		"rotation": Vector3(90, 0, 0),
+		"size_axes": [0, 2],        # quad uses extents.x and extents.z
+	},
+	"down": {
+		"offset_dir": Vector3(0, -1, 0),
+		"rotation": Vector3(-90, 0, 0),
+		"size_axes": [0, 2],
+	},
+	"northeast": {
+		"offset_dir": Vector3(1, 0, 1),
+		"rotation": Vector3(0, -45, 0),
+		"size_axes": [2, 1],        # quad uses extents.z
+	},
+	"northwest": {
+		"offset_dir": Vector3(-1, 0, 1),
+		"rotation": Vector3(0, 45, 0),
+		"size_axes": [2, 1],
+	},
+	"southeast": {
+		"offset_dir": Vector3(1, 0, -1),
+		"rotation": Vector3(0, -135, 0),
+		"size_axes": [2, 1],
+	},
+	"southwest": {
+		"offset_dir": Vector3(-1, 0, -1),
+		"rotation": Vector3(0, 135, 0),
+		"size_axes": [2, 1],
+	},
+}
 # How much to shrink face quads so the wireframe edges stay visible
 const FACE_INSET: float = 0.9
 
+func _set_shape(value):
+	shape = value
+	if shape == Shapes.CUBE:
+		_rebuild_wireframe()
+	elif shape == Shapes.HEX:
+		_rebuild_wireframe_hex()
+	# Note: we keep the same face defs for both shapes, so no need to rebuild faces here
 func _set_extents(value):
 	extents = value
 	_rebuild_wireframe()
@@ -116,7 +175,30 @@ func _rebuild_wireframe():
 		im.surface_add_vertex(verts[pair[1]])
 	im.surface_end()
 	_mesh_instance.mesh = im
-
+func _rebuild_wireframe_hex():
+	if not _mesh_instance:
+		return
+	var im = ImmediateMesh.new()
+	var e = extents
+	var h = e.x * 0.5
+	var verts = [
+		Vector3( 0,  e.y,  e.z), Vector3(-h,  e.y,  e.z * 0.5), Vector3(-h,  e.y, -e.z * 0.5),
+		Vector3( 0,  e.y, -e.z), Vector3( h,  e.y, -e.z * 0.5), Vector3( h,  e.y,  e.z * 0.5),
+		Vector3( 0, -e.y,  e.z), Vector3(-h, -e.y,  e.z * 0.5), Vector3(-h, -e.y, -e.z * 0.5),
+		Vector3( 0, -e.y, -e.z), Vector3( h, -e.y, -e.z * 0.5), Vector3( h, -e.y,  e.z * 0.5),
+	]
+	im.surface_begin(Mesh.PRIMITIVE_LINES)
+	for pair in [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]:
+		im.surface_add_vertex(verts[pair[0]])
+		im.surface_add_vertex(verts[pair[1]])
+	for pair in [[6,7],[7,8],[8,9],[9,10],[10,11],[11,6]]:
+		im.surface_add_vertex(verts[pair[0]])
+		im.surface_add_vertex(verts[pair[1]])
+	for i in range(6):
+		im.surface_add_vertex(verts[i])
+		im.surface_add_vertex(verts[i + 6])
+	im.surface_end()
+	_mesh_instance.mesh = im
 # --- Face quad rendering ---
 
 func _rebuild_faces():
