@@ -25,9 +25,11 @@ This is a plugin created for Godot 4.x and forwards, allowing users to create Pr
 
 
 ## Images
+<img width="532" height="411" alt="Screenshot 2026-02-15 185147" src="https://github.com/user-attachments/assets/9d93db1e-eaf5-46ff-a379-32d6f0130ed9" />
 
 
 
+<img width="3020" height="1238" alt="Screenshot 2026-02-19 230453" src="https://github.com/user-attachments/assets/b9ed0739-66bd-4368-b628-b7dc042700f0" />
 
 ## TODO
 - [ ] Make the normal 3D pipeline more intricate for collapsing with objects with different heights and more complex shapes
@@ -42,4 +44,5 @@ This is currently a alpha build of the plugin developed initially as a indepdent
 ## Special Thanks
 - [Godot Engine](https://godotengine.org/) for providing an amazing game engine
 - [Professor Urban](https://engineering.lehigh.edu/faculty/stephen-lee-urban) for his guidance and support throughout the development of this plugin
-- []
+- [MarkovJunior](https://github.com/mxgmn/MarkovJunior) for the original WFC algorithm implementation
+- [Marian](https://marian42.de/article/wfc/) for the infinite castle implementation of the WFC algorithm
