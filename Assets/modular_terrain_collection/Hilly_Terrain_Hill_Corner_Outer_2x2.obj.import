@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cx3ui21gimhd8"
+path="res://.godot/imported/Hilly_Terrain_Hill_Corner_Outer_2x2.obj-dcf32c9c2f0856331f79c1b41b37a09f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Hilly_Terrain_Hill_Corner_Outer_2x2.obj-dcf32c9c2f0856331f79c1b41b37a09f.mesh"]
+
+source_file="res://Assets/modular_terrain_collection/Hilly_Terrain_Hill_Corner_Outer_2x2.obj"
+dest_files=["res://.godot/imported/Hilly_Terrain_Hill_Corner_Outer_2x2.obj-dcf32c9c2f0856331f79c1b41b37a09f.mesh", "res://.godot/imported/Hilly_Terrain_Hill_Corner_Outer_2x2.obj-dcf32c9c2f0856331f79c1b41b37a09f.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

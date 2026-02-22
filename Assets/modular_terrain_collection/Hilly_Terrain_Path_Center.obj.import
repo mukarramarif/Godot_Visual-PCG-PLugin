@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://wklvvu6bniui"
+path="res://.godot/imported/Hilly_Terrain_Path_Center.obj-4df5b7eefaa5818884a92ce2be74c385.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Hilly_Terrain_Path_Center.obj-4df5b7eefaa5818884a92ce2be74c385.mesh"]
+
+source_file="res://Assets/modular_terrain_collection/Hilly_Terrain_Path_Center.obj"
+dest_files=["res://.godot/imported/Hilly_Terrain_Path_Center.obj-4df5b7eefaa5818884a92ce2be74c385.mesh", "res://.godot/imported/Hilly_Terrain_Path_Center.obj-4df5b7eefaa5818884a92ce2be74c385.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

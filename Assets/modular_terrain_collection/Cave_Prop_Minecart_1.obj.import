@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b1tyup4g5cn1i"
+path="res://.godot/imported/Cave_Prop_Minecart_1.obj-93c560e29a9d6c830035fefcb6e0b95d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Cave_Prop_Minecart_1.obj-93c560e29a9d6c830035fefcb6e0b95d.mesh"]
+
+source_file="res://Assets/modular_terrain_collection/Cave_Prop_Minecart_1.obj"
+dest_files=["res://.godot/imported/Cave_Prop_Minecart_1.obj-93c560e29a9d6c830035fefcb6e0b95d.mesh", "res://.godot/imported/Cave_Prop_Minecart_1.obj-93c560e29a9d6c830035fefcb6e0b95d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
