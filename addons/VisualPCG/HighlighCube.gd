@@ -7,12 +7,13 @@ class_name HighlighCube
 
 var _mesh_instance: MeshInstance3D
 var _material: StandardMaterial3D
-var shape: int = Shapes.CUBE
+@export var shape: int = Shapes.CUBE
 # --- Per-face socket coloring ---
 # Stores direction -> { "color": Color, "socket": String }
 var socket_faces: Dictionary = {}
 # Holds references to the face MeshInstance3D nodes so we can clear them
 var _face_instances: Dictionary = {}
+# holds the geometry definitons for the shape faces - used to position/rotate the face quads correctly
 enum Shapes { CUBE, HEX }
 # Face geometry definitions for a unit cube
 # "offset_axis" and "rotation" orient the quad onto the correct face
@@ -107,10 +108,8 @@ const FACE_INSET: float = 0.9
 
 func _set_shape(value):
 	shape = value
-	if shape == Shapes.CUBE:
-		_rebuild_wireframe()
-	elif shape == Shapes.HEX:
-		_rebuild_wireframe_hex()
+	_rebuild_wireframe()
+	_rebuild_faces()
 	# Note: we keep the same face defs for both shapes, so no need to rebuild faces here
 func _set_extents(value):
 	extents = value
@@ -139,7 +138,8 @@ func _ready():
 ## Call this to update which faces are colored.
 ## faces_dict maps direction name -> { "color": Color, "socket": String }
 ## Directions with socket "-1" or missing are hidden.
-func set_socket_faces(faces_dict: Dictionary):
+func set_socket_faces(faces_dict: Dictionary, shape_value):
+	shape = shape_value
 	socket_faces = faces_dict
 	_rebuild_faces()
 
@@ -150,7 +150,7 @@ func highlight_direction(direction: String, highlighted: bool):
 		var mat: StandardMaterial3D = mi.material_override
 		mat.albedo_color.a = 0.7 if highlighted else 0.35
 
-# --- Wireframe (unchanged) ---
+# --- Wireframe ---
 
 func _rebuild_wireframe():
 	if not _mesh_instance:
@@ -207,7 +207,11 @@ func _rebuild_faces():
 		if is_instance_valid(_face_instances[key]):
 			_face_instances[key].queue_free()
 	_face_instances.clear()
+<<<<<<< Updated upstream
 
+=======
+	var face_defs = FACE_DEFS if shape == Shapes.CUBE else HEX_FACE_DEFS
+>>>>>>> Stashed changes
 	# Build new ones for each active socket direction
 	for direction in socket_faces:
 		var face_data = socket_faces[direction]
@@ -215,7 +219,7 @@ func _rebuild_faces():
 		if socket_value == "-1" or socket_value.is_empty():
 			continue  # Don't draw disabled sockets
 
-		var face_def = FACE_DEFS.get(direction)
+		var face_def = face_defs.get(direction)
 		if not face_def:
 			continue  # Skip directions we don't have geometry for (hex sides)
 
@@ -245,13 +249,46 @@ func _create_face_quad(direction: String, face_def: Dictionary, color: Color):
 	mi.material_override = mat
 	mi.name = "Face_" + direction
 
-	# Position: push out to the face
-	var offset_dir: Vector3 = face_def["offset_dir"]
-	mi.position = offset_dir * Vector3(extents.x, extents.y, extents.z) * abs(offset_dir)
-
-	# Rotation: orient the quad to face outward
-	var rot: Vector3 = face_def["rotation"]
-	mi.rotation_degrees = rot
-
+	match shape:
+		Shapes.CUBE:
+			_setup_cube_face(mi, face_def)
+		Shapes.HEX:
+			_setup_hex_face(mi, face_def)
 	add_child(mi)
 	_face_instances[direction] = mi
+func _setup_cube_face(mi: MeshInstance3D, face_def: Dictionary):
+
+	var e_array = [extents.x, extents.y, extents.z]
+	var size_x = e_array[face_def["size_axes"][0]] * 2.0 * FACE_INSET
+	var size_y = e_array[face_def["size_axes"][1]] * 2.0 * FACE_INSET
+	var quad = QuadMesh.new()
+	quad.size = Vector2(size_x, size_y)
+	mi.mesh = quad
+	var offset_dir: Vector3 = face_def["offset_dir"]
+	mi.position = offset_dir * Vector3(extents.x, extents.y, extents.z) * abs(offset_dir)
+	mi.rotation_degrees = face_def["rotation"]
+
+func _setup_hex_face(mi: MeshInstance3D, face_def: Dictionary):
+
+	if face_def.has("angle_deg"):
+		# Side rectangle
+		var quad = QuadMesh.new()
+		quad.size = Vector2(extents.x * FACE_INSET, extents.y * 2.0 * FACE_INSET)
+		mi.mesh = quad
+		var angle = deg_to_rad(face_def["angle_deg"])
+		var apothem = extents.x * sqrt(3.0) / 2.0
+		mi.position = Vector3(cos(angle) * apothem, 0.0, sin(angle) * apothem)
+		mi.rotation_degrees = Vector3(0, -face_def["angle_deg"], 0)
+	else:
+		# Top / bottom hexagon fan
+		var st = SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var y = face_def["offset_dir"].y * extents.y
+		var center = Vector3(0, y, 0)
+		for i in range(6):
+			var a1 = deg_to_rad(60.0 * i)
+			var a2 = deg_to_rad(60.0 * (i + 1))
+			st.add_vertex(center)
+			st.add_vertex(Vector3(cos(a1) * extents.x * FACE_INSET, y, sin(a1) * extents.x * FACE_INSET))
+			st.add_vertex(Vector3(cos(a2) * extents.x * FACE_INSET, y, sin(a2) * extents.x * FACE_INSET))
+		mi.mesh = st.commit()
