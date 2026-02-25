@@ -67,7 +67,7 @@ const DIRECTION_COLORS = {
 	"sw": Color.BLUE,
 	"nw": Color(1.0, 0.0, 0.5),
 }
-
+enum Shapes { CUBE, HEX }
 func get_current_directions() -> Array:
 	if grid_type == "hex":
 		if hex_orientation == "flat":
@@ -813,7 +813,7 @@ func _update_highlight_faces():
 	if not highlight_cube:
 		return
 	if current_tile.is_empty() or not tile_library.has(current_tile):
-		highlight_cube.set_socket_faces({})
+		highlight_cube.set_socket_faces({},0)
 		return
 
 	var sockets = tile_library[current_tile].get("sockets", {})
@@ -824,7 +824,10 @@ func _update_highlight_faces():
 			"color": DIRECTION_COLORS.get(direction, Color.WHITE),
 			"socket": socket_val,
 		}
-	highlight_cube.set_socket_faces(faces)
+	var shape_type = 0
+	if grid_type == "hex":
+		shape_type = 1
+	highlight_cube.set_socket_faces(faces, shape_type)
 func auto_fit_camera():
 	if not current_tile_instance:
 		return
