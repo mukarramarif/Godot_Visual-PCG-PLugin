@@ -67,7 +67,7 @@ const DIRECTION_COLORS = {
 	"sw": Color.BLUE,
 	"nw": Color(1.0, 0.0, 0.5),
 }
-
+enum Shapes { CUBE, HEX }
 func get_current_directions() -> Array:
 	if grid_type == "hex":
 		if hex_orientation == "flat":
