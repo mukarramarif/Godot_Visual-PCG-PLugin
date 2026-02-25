@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://8vohtymjc0x0"
+path="res://.godot/imported/Beach_Prop_Starfish_1.obj-3be55ec01bc1fb9814b3ee26198f9144.mesh"
+
+[deps]
+
+files=["res://.godot/imported/Beach_Prop_Starfish_1.obj-3be55ec01bc1fb9814b3ee26198f9144.mesh"]
+
+source_file="res://Assets/modular_terrain_collection/Beach_Prop_Starfish_1.obj"
+dest_files=["res://.godot/imported/Beach_Prop_Starfish_1.obj-3be55ec01bc1fb9814b3ee26198f9144.mesh", "res://.godot/imported/Beach_Prop_Starfish_1.obj-3be55ec01bc1fb9814b3ee26198f9144.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

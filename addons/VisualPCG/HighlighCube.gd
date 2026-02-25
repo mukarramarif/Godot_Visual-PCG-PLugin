@@ -133,6 +133,12 @@ func highlight_direction(direction: String, highlighted: bool):
 # --- Wireframe ---
 
 func _rebuild_wireframe():
+	if shape == Shapes.CUBE:
+		_rebuild_wireframe_square()
+	elif shape == Shapes.HEX:
+		_rebuild_wireframe_hex()
+
+func _rebuild_wireframe_square():
 	if not _mesh_instance:
 		return
 	match shape:
@@ -196,8 +202,8 @@ func _rebuild_faces():
 		if is_instance_valid(_face_instances[key]):
 			_face_instances[key].queue_free()
 	_face_instances.clear()
-	var face_defs = FACE_DEFS if shape == Shapes.CUBE else HEX_FACE_DEFS
-
+	var face_defs = shape == Shapes.CUBE if FACE_DEFS else  HEX_FACE_DEFS
+	# Build new ones for each active socket direction
 	for direction in socket_faces:
 		var face_data = socket_faces[direction]
 		var socket_value: String = face_data.get("socket", "-1")
