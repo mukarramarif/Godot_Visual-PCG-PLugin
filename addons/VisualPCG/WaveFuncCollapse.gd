@@ -27,6 +27,10 @@ const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
+const MAX_RETRIES: int = 10
+const MAX_BACKTRACKS_PER_ATTEMPT: int = 100
+
+
 ## Error types
 enum ErrorType {
 	NONE,
@@ -69,18 +73,64 @@ func run_wfc(tileset: Dictionary):
 		return null
 
 	prepare_tiles()
-	init_grid(grid_size)
 
-	var result = collapse_grid_with_diagnostics()
+	# Retry loop: attempt the full WFC up to MAX_RETRIES times
+	var last_res: Dictionary = {}
+	for attempt in range(MAX_RETRIES):
+		print("=== WFC Attempt %d / %d ===" % [attempt + 1, MAX_RETRIES])
+		randomize()
+		init_grid(grid_size)
 
-	if result["success"]:
-		print("WFC Generation completed successfully!")
-		print_grid()
-		emit_signal("generation_completed", grid)
-		return grid
-	else:
-		emit_signal("generation_failed", result)
-		return null
+		var result = collapse_grid_with_diagnostics()
+
+		if result["success"]:
+			print("WFC Generation completed successfully on attempt %d!" % (attempt + 1))
+			print_grid()
+			emit_signal("generation_completed", grid)
+			return grid
+		else:
+			last_res = result
+			var backtrack_count = result.get("backtrack_count", 0)
+			print("Attempt %d failed (backtracks used: %d). Retrying..." % [attempt + 1, backtrack_count])
+
+	# All attempts exhausted
+	print("WFC Generation failed after %d attempts." % MAX_RETRIES)
+	last_res["message"] = "Generation failed after %d attempts.\n\n%s" % [MAX_RETRIES, last_res.get("message", "")]
+	if not last_res.has("suggestions"):
+		last_res["suggestions"] = []
+	last_res["suggestions"].append("The algorithm retried %d times with backtracking and still couldn't find a valid solution" % MAX_RETRIES)
+	last_res["suggestions"].append("Consider simplifying constraints or adding more compatible tiles")
+	emit_signal("generation_failed", last_res)
+	return null
+func save_grid_snapshot() -> Array:
+	var snapshot = []
+	for z in range(grid.size()):
+		var layer_snap = []
+		for y in range(grid[z].size()):
+			var row_snap = []
+			for x in range(grid[z][y].size()):
+				var cell = grid[z][y][x]
+				row_snap.append({
+					"position": cell["position"],
+					"collapsed": cell["collapsed"],
+					"possible_tiles": cell["possible_tiles"].duplicate(),
+					"tile": cell["tile"],
+					"collapse_history": cell["collapse_history"].duplicate()
+				})
+			layer_snap.append(row_snap)
+		snapshot.append(layer_snap)
+	return snapshot
+
+func restore_grid_snapshot(snapshot: Array) -> void:
+	for z in range(snapshot.size()):
+		for y in range(snapshot[z].size()):
+			for x in range(snapshot[z][y].size()):
+				var saved = snapshot[z][y][x]
+				var cell = grid[z][y][x]
+				cell["collapsed"] = saved["collapsed"]
+				cell["possible_tiles"] = saved["possible_tiles"].duplicate()
+				cell["tile"] = saved["tile"]
+				cell["collapse_history"] = saved["collapse_history"].duplicate()
 
 ## Detailed tileset validation
 func validate_tileset_detailed() -> Dictionary:
@@ -258,55 +308,156 @@ func init_grid(size: Vector3i):
 		grid.append(layer)
 	print("Grid initialized: %dx%dx%d (%s)" % [grid_size.x, grid_size.y, grid_size.z, grid_type])
 
-## Main collapse with full diagnostics
+## Main collapse with backtracking support.
+## When a contradiction is detected, the algorithm rolls back to the state
+## before the last collapse, removes the tile that caused the contradiction,
+## and retries. If a cell runs out of alternatives it keeps unwinding the
+## stack. After MAX_BACKTRACKS_PER_ATTEMPT total backtracks the attempt is
+## considered failed (the outer retry loop in run_wfc will start fresh).
 func collapse_grid_with_diagnostics() -> Dictionary:
 	var iterations = 0
 	var total_cells = grid_size.x * grid_size.y * grid_size.z
-	var max_iterations = total_cells * 10
+	var max_iterations = total_cells * 20  # Extra headroom for backtracking
+
+	# Backtracking stack: each entry is { "snapshot": <grid_snapshot>, "cell_pos": Vector3i, "tried_tile": String }
+	var backtrack_stack: Array = []
+	var backtrack_count: int = 0
 
 	while not is_grid_fully_collapsed():
 		iterations += 1
 
 		if iterations > max_iterations:
-			return create_error(
+			var err = create_error(
 				ErrorType.MAX_ITERATIONS,
 				"Maximum Iterations Exceeded",
-				"The algorithm ran for %d iterations without completing. This usually indicates a problem with the tileset." % iterations,
+				"The algorithm ran for %d iterations (with %d backtracks) without completing." % [iterations, backtrack_count],
 				[
 					"Reduce the grid size and try again",
 					"Check that tiles have enough connection variety",
 					"Add more tiles with different socket configurations"
 				]
 			)
+			err["backtrack_count"] = backtrack_count
+			return err
 
 		var cell = find_lowest_entropy_cell()
 
 		if cell == null:
-			# Contradiction found
-			return analyze_contradiction()
+			# Contradiction: a cell has 0 possibilities — try to backtrack
+			var bt_result = _backtrack(backtrack_stack)
+			if not bt_result["success"]:
+				var err = analyze_contradiction()
+				err["backtrack_count"] = backtrack_count
+				return err
+			backtrack_count += 1
+			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
+				var err = create_error(
+					ErrorType.CONTRADICTION,
+					"Too Many Backtracks",
+					"The algorithm backtracked %d times in this attempt without finding a solution." % backtrack_count,
+					["The tileset may be too constrained for this grid size",
+					"Add more tile variety or relax socket constraints"]
+				)
+				err["backtrack_count"] = backtrack_count
+				return err
+			continue
 
 		if cell["possible_tiles"].size() == 0:
-			# Should not happen, but safety check
-			return analyze_contradiction_at_cell(cell)
+			# Safety check — backtrack
+			var bt_result = _backtrack(backtrack_stack)
+			if not bt_result["success"]:
+				var err = analyze_contradiction_at_cell(cell)
+				err["backtrack_count"] = backtrack_count
+				return err
+			backtrack_count += 1
+			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
+				var err = create_error(
+					ErrorType.CONTRADICTION,
+					"Too Many Backtracks",
+					"The algorithm backtracked %d times in this attempt without finding a solution." % backtrack_count,
+					["The tileset may be too constrained for this grid size",
+					"Add more tile variety or relax socket constraints"]
+				)
+				err["backtrack_count"] = backtrack_count
+				return err
+			continue
+
+		# Save a snapshot BEFORE collapsing so we can roll back
+		var snapshot = save_grid_snapshot()
 
 		# Collapse the cell
 		if not collapse_cell(cell):
-			return analyze_contradiction_at_cell(cell)
+			var bt_result = _backtrack(backtrack_stack)
+			if not bt_result["success"]:
+				var err = analyze_contradiction_at_cell(cell)
+				err["backtrack_count"] = backtrack_count
+				return err
+			backtrack_count += 1
+			continue
+
+		var chosen_tile = cell["tile"]
+
+		# Push onto backtrack stack
+		backtrack_stack.append({
+			"snapshot": snapshot,
+			"cell_pos": cell["position"],
+			"tried_tile": chosen_tile
+		})
 
 		# Record what tile was placed
-		cell["collapse_history"].append(cell["tile"])
+		cell["collapse_history"].append(chosen_tile)
 
 		# Propagate and check for contradictions
 		var propagation_result = propagate_with_tracking(cell)
 		if not propagation_result["success"]:
-			return propagation_result
+			# Contradiction during propagation — backtrack instead of failing
+			var bt_result = _backtrack(backtrack_stack)
+			if not bt_result["success"]:
+				# Can't backtrack any further
+				propagation_result["backtrack_count"] = backtrack_count
+				return propagation_result
+			backtrack_count += 1
+			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
+				var err = create_error(
+					ErrorType.CONTRADICTION,
+					"Too Many Backtracks",
+					"The algorithm backtracked %d times in this attempt without finding a solution." % backtrack_count,
+					["The tileset may be too constrained for this grid size",
+					"Add more tile variety or relax socket constraints"]
+				)
+				err["backtrack_count"] = backtrack_count
+				return err
+			continue
 
 		# Progress update
 		if iterations % 50 == 0:
 			var progress = get_collapse_progress() * 100
-			print("Progress: %.1f%% (%d/%d cells)" % [progress, get_collapsed_count(), total_cells])
+			print("Progress: %.1f%% (%d/%d cells, %d backtracks)" % [progress, get_collapsed_count(), total_cells, backtrack_count])
 
-	return {"success": true}
+	print("Collapse complete with %d backtracks." % backtrack_count)
+	return {"success": true, "backtrack_count": backtrack_count}
+
+## Backtrack: pop the last entry from the stack, restore the snapshot, and
+## remove the tile that was tried so it won't be picked again.
+## Keeps unwinding if a cell has no remaining alternatives.
+func _backtrack(backtrack_stack: Array) -> Dictionary:
+	while backtrack_stack.size() > 0:
+		var entry = backtrack_stack.pop_back()
+		restore_grid_snapshot(entry["snapshot"])
+
+		# Remove the tile that led to a contradiction from this cell's possibilities
+		var pos = entry["cell_pos"]
+		var cell = grid[pos.z][pos.y][pos.x]
+		var bad_tile = entry["tried_tile"]
+		cell["possible_tiles"].erase(bad_tile)
+
+		if cell["possible_tiles"].size() > 0:
+			# This cell still has alternatives — backtrack succeeded
+			return {"success": true}
+		# else: this cell has no more options either, keep unwinding
+
+	# Stack exhausted — no valid state to return to
+	return {"success": false}
 
 ## Propagate constraints with detailed tracking
 func propagate_with_tracking(start_cell: Dictionary) -> Dictionary:
