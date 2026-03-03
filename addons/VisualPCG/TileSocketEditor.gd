@@ -287,7 +287,7 @@ func setup_socket_editor_ui():
 
 	# Help text
 	var help = Label.new()
-	help.text = "Socket Format:\n  -1 = no connection\n  0 = empty/air\n  1S = symmetric\n  1/1F = asymmetric pair"
+	help.text = "Socket Format:\n  -1 = no connection\n  0 = empty/air\n  <n>S = symmetric (e.g. 1S, 2S)\n  <n>/<n>F = asymmetric pair (e.g. 2/2F)\n  Any integer prefix is valid."
 	help.add_theme_font_size_override("font_size", 11)
 	help.add_theme_color_override("font_color", Color.GRAY)
 	properties_panel.add_child(help)
@@ -390,9 +390,47 @@ func build_presets(container: VBoxContainer):
 	presets_label.text = "Quick Presets:"
 	container.add_child(presets_label)
 
+	# Socket number input for presets
+	var num_hbox = HBoxContainer.new()
+	var num_label = Label.new()
+	num_label.text = "Socket #:"
+	num_label.custom_minimum_size.x = 65
+	num_hbox.add_child(num_label)
+
+	var sym_input = LineEdit.new()
+	sym_input.name = "PresetSymInput"
+	sym_input.placeholder_text = "e.g. 1"
+	sym_input.text = "1"
+	sym_input.custom_minimum_size.x = 50
+	sym_input.tooltip_text = "Number used for symmetric (S) preset sockets"
+	num_hbox.add_child(sym_input)
+
+	var asym_label = Label.new()
+	asym_label.text = "  Asym #:"
+	asym_label.custom_minimum_size.x = 60
+	num_hbox.add_child(asym_label)
+
+	var asym_input = LineEdit.new()
+	asym_input.name = "PresetAsymInput"
+	asym_input.placeholder_text = "e.g. 1"
+	asym_input.text = "1"
+	asym_input.custom_minimum_size.x = 50
+	asym_input.tooltip_text = "Number used for asymmetric (F) preset sockets"
+	num_hbox.add_child(asym_input)
+
+	container.add_child(num_hbox)
+
 	var preset_grid = GridContainer.new()
 	preset_grid.columns = 2
 	container.add_child(preset_grid)
+
+	var get_sym = func() -> String:
+		var v = sym_input.text.strip_edges()
+		return (v if v != "" else "1") + "S"
+
+	var get_asym = func() -> String:
+		var v = asym_input.text.strip_edges()
+		return v if v != "" else "1"
 
 	var presets = []
 	if grid_type == "hex":
@@ -400,22 +438,22 @@ func build_presets(container: VBoxContainer):
 			presets = [
 				["All -1", func(): apply_all_sockets("-1")],
 				["All 0", func(): apply_all_sockets("0")],
-				["All Sides 1S", func(): apply_hex_sides_flat("1S")],
-				["Open Hex", func(): apply_open_hex()],
+				["All Sides (S)", func(): apply_hex_sides_flat(get_sym.call())],
+				["Open Hex", func(): apply_open_hex_with(get_sym.call())],
 			]
 		else:
 			presets = [
 				["All -1", func(): apply_all_sockets("-1")],
 				["All 0", func(): apply_all_sockets("0")],
-				["All Sides 1S", func(): apply_hex_sides_pointy("1S")],
-				["Open Hex", func(): apply_open_hex()],
+				["All Sides (S)", func(): apply_hex_sides_pointy(get_sym.call())],
+				["Open Hex", func(): apply_open_hex_with(get_sym.call())],
 			]
 	else:
 		presets = [
 			["All -1", func(): apply_all_sockets("-1")],
 			["All 0", func(): apply_all_sockets("0")],
-			["Floor", func(): apply_floor_preset()],
-			["Wall N/S", func(): apply_wall_ns_preset()],
+			["Floor (S)", func(): apply_floor_preset_with(get_sym.call())],
+			["Wall N/S (S)", func(): apply_wall_ns_preset_with(get_sym.call())],
 		]
 
 	for preset in presets:
@@ -472,34 +510,43 @@ func apply_hex_sides_flat(value: String):
 		_on_socket_changed("-1", "down")
 
 func apply_open_hex():
+	apply_open_hex_with("1S")
+
+func apply_open_hex_with(sym_value: String):
 	if current_tile.is_empty():
 		return
 	for direction in ["ne", "e", "se", "sw", "w", "nw"]:
-		socket_inputs[direction].text = "1S"
-		_on_socket_changed("1S", direction)
+		socket_inputs[direction].text = sym_value
+		_on_socket_changed(sym_value, direction)
 	socket_inputs["up"].text = "0"
 	socket_inputs["down"].text = "0"
 	_on_socket_changed("0", "up")
 	_on_socket_changed("0", "down")
 
 func apply_floor_preset():
+	apply_floor_preset_with("1S")
+
+func apply_floor_preset_with(sym_value: String):
 	if current_tile.is_empty():
 		return
 	for direction in ["north", "south", "east", "west"]:
-		socket_inputs[direction].text = "1S"
-		_on_socket_changed("1S", direction)
+		socket_inputs[direction].text = sym_value
+		_on_socket_changed(sym_value, direction)
 	socket_inputs["up"].text = "-1"
 	socket_inputs["down"].text = "0"
 	_on_socket_changed("-1", "up")
 	_on_socket_changed("0", "down")
 
 func apply_wall_ns_preset():
+	apply_wall_ns_preset_with("1S")
+
+func apply_wall_ns_preset_with(sym_value: String):
 	if current_tile.is_empty():
 		return
-	socket_inputs["north"].text = "1S"
-	socket_inputs["south"].text = "1S"
-	_on_socket_changed("1S", "north")
-	_on_socket_changed("1S", "south")
+	socket_inputs["north"].text = sym_value
+	socket_inputs["south"].text = sym_value
+	_on_socket_changed(sym_value, "north")
+	_on_socket_changed(sym_value, "south")
 	for direction in ["east", "west", "up", "down"]:
 		socket_inputs[direction].text = "-1"
 		_on_socket_changed("-1", direction)
@@ -579,28 +626,62 @@ func can_connect(tile_a: String, direction: String, tile_b: String) -> bool:
 	var socket_b = tile_library[tile_b].get("sockets", {}).get(opposite, "-1")
 	return sockets_compatible(socket_a, socket_b)
 
+# Parses a socket string into a Dictionary:
+#   { "valid": bool, "base": String, "type": "none"|"symmetric"|"flipped"|"plain" }
+# Valid formats: "-1", "0", "<n>S", "<n>F", "<n>"
+# where <n> is one or more digits (optionally negative for special values).
+func _parse_socket(socket: String) -> Dictionary:
+	var s = socket.strip_edges()
+
+	if s == "-1":
+		return { "valid": true, "base": "-1", "type": "none" }
+
+	if s.ends_with("S"):
+		var base = s.trim_suffix("S")
+		if base.is_valid_int() and base.to_int() >= 0:
+			return { "valid": true, "base": base, "type": "symmetric" }
+		return { "valid": false, "base": s, "type": "symmetric" }
+
+	if s.ends_with("F"):
+		var base = s.trim_suffix("F")
+		if base.is_valid_int() and base.to_int() >= 0:
+			return { "valid": true, "base": base, "type": "flipped" }
+		return { "valid": false, "base": s, "type": "flipped" }
+
+	if s.is_valid_int() and s.to_int() >= 0:
+		return { "valid": true, "base": s, "type": "plain" }
+
+	return { "valid": false, "base": s, "type": "unknown" }
+
 func sockets_compatible(socket_a: String, socket_b: String) -> bool:
-	if socket_a == "-1" or socket_b == "-1":
-		return false
 	if socket_a.is_empty() or socket_b.is_empty():
 		return false
 
-	var a_symmetric = socket_a.ends_with("S")
-	var b_symmetric = socket_b.ends_with("S")
+	var a = _parse_socket(socket_a)
+	var b = _parse_socket(socket_b)
 
-	if a_symmetric and b_symmetric:
-		return socket_a == socket_b
-	if a_symmetric or b_symmetric:
+	# Reject invalid or unparseable socket strings
+	if not a["valid"] or not b["valid"]:
 		return false
 
-	var a_flipped = socket_a.ends_with("F")
-	var b_flipped = socket_b.ends_with("F")
-	var a_base = socket_a.trim_suffix("F")
-	var b_base = socket_b.trim_suffix("F")
-
-	if a_base != b_base:
+	# "-1" never connects
+	if a["type"] == "none" or b["type"] == "none":
 		return false
-	return a_flipped != b_flipped
+
+	# Both symmetric: must share the same base number (e.g. 2S <-> 2S)
+	if a["type"] == "symmetric" and b["type"] == "symmetric":
+		return a["base"] == b["base"]
+
+	# Symmetric only connects to symmetric
+	if a["type"] == "symmetric" or b["type"] == "symmetric":
+		return false
+
+	# Asymmetric pair: plain connects to flipped of the same base (e.g. 2 <-> 2F)
+	if a["base"] != b["base"]:
+		return false
+
+	# plain <-> flipped  (exactly one side must be flipped)
+	return a["type"] != b["type"]
 
 func get_opposite_direction(direction: String) -> String:
 	match direction:
