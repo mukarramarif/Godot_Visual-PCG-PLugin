@@ -29,11 +29,11 @@ This is a plugin created for Godot 4.x and forwards, allowing users to create Pr
 
 
 
-<img width="3020" height="1238" alt="Screenshot 2026-02-19 230453" src="https://github.com/user-attachments/assets/b9ed0739-66bd-4368-b628-b7dc042700f0" />
+
 
 ## TODO
-- [ ] Add 3D wireframe highlighting to hex tiles
-- [ ] Make the normal 3D pipeline more intricate for collapsing with objects with different heights and more complex shapes
+- [x] Add 3D wireframe highlighting to hex tiles
+- [x] Make the normal 3D pipeline more intricate for collapsing with objects with different heights and more complex shapes
 - [ ] Add more PCG tools like Perlin Noise, as options 
 - [ ] Runtime generation in games
 
