@@ -27,8 +27,8 @@ const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
-const MAX_RETRIES: int = 10
-const MAX_BACKTRACKS_PER_ATTEMPT: int = 100
+const MAX_RETRIES: int = 3
+const MAX_BACKTRACKS_PER_ATTEMPT: int = 3
 
 
 ## Error types
@@ -879,7 +879,7 @@ func get_collapsed_count() -> int:
 
 # ===== INSTANTIATE TILES =====
 
-func instantiate_tiles_in_world(parent: Node3D, p_tile_size: float = 2.0, layer_height: float = 2.0, p_spacing: float = -1.0):
+func instantiate_tiles_in_world(parent: Node3D, p_tile_size: float = 2.0, layer_height: float = 0.1, p_spacing: float = -1.0):
 	var use_size = tile_size if tile_size > 0 else p_tile_size
 	var use_spacing = p_spacing if p_spacing >= 0 else tile_spacing
 
