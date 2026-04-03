@@ -1,0 +1,96 @@
+{
+  "grid_size": {
+    "x": 20,
+    "y": 20,
+    "z": 1
+  },
+  "grid_type": "hex",
+  "tile_size": 2.0,
+  "tiles": {
+    "hex_coast_A": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_A.obj",
+      "format": "obj",
+      "name": "hex_coast_A",
+      "sockets": {
+        "down": "-1",
+        "e": "1",
+        "ne": "1S",
+        "nw": "1",
+        "se": "1S",
+        "sw": "1",
+        "up": "-1",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_B": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_B.obj",
+      "format": "obj",
+      "name": "hex_coast_B",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1F",
+        "nw": "1S",
+        "se": "1F",
+        "sw": "1S",
+        "up": "-1",
+        "w": "1F"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_C": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_C.obj",
+      "format": "obj",
+      "name": "hex_coast_C",
+      "sockets": {
+        "down": "0",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "0",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_D": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_D.obj",
+      "format": "obj",
+      "name": "hex_coast_D",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "-1",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_water": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/base/hex_water.obj",
+      "format": "obj",
+      "name": "hex_water",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "-1",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    }
+  }
+}

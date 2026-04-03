@@ -1,0 +1,297 @@
+{
+  "grid_type": "hex",
+  "hex_orientation": "flat",
+  "tile_size": 1.2,
+  "tile_spacing": 0.0,
+  "tiles": {
+    "building_bridge_B": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/buildings/neutral/building_bridge_B.obj",
+      "format": "obj",
+      "name": "building_bridge_B",
+      "sockets": {
+        "down": "2F",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "building_dirt": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/buildings/neutral/building_dirt.obj",
+      "format": "obj",
+      "name": "building_dirt",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2S",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "building_tower_B_blue": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/buildings/blue/building_tower_B_blue.obj",
+      "format": "obj",
+      "name": "building_tower_B_blue",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_A": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_A.obj",
+      "format": "obj",
+      "name": "hex_coast_A",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1S",
+        "nw": "1",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_B": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_B.obj",
+      "format": "obj",
+      "name": "hex_coast_B",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_C": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_C.obj",
+      "format": "obj",
+      "name": "hex_coast_C",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1",
+        "nw": "1",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_coast_D": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/coast/hex_coast_D.obj",
+      "format": "obj",
+      "name": "hex_coast_D",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_grass": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/base/hex_grass.obj",
+      "format": "obj",
+      "name": "hex_grass",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1",
+        "nw": "1",
+        "se": "1F",
+        "sw": "1F",
+        "up": "2S",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_grass_bottom": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/base/hex_grass_bottom.obj",
+      "format": "obj",
+      "name": "hex_grass_bottom",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1",
+        "nw": "1",
+        "se": "1F",
+        "sw": "1F",
+        "up": "2S",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_road_A": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/roads/hex_road_A.obj",
+      "format": "obj",
+      "name": "hex_road_A",
+      "sockets": {
+        "down": "-1",
+        "e": "1F",
+        "ne": "1",
+        "nw": "1",
+        "se": "1F",
+        "sw": "1F",
+        "up": "-1",
+        "w": "1"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "hex_water": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/tiles/base/hex_water.obj",
+      "format": "obj",
+      "name": "hex_water",
+      "sockets": {
+        "down": "-1",
+        "e": "1S",
+        "ne": "1S",
+        "nw": "1S",
+        "se": "1S",
+        "sw": "1S",
+        "up": "2",
+        "w": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "mountain_B_grass": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/mountain_B_grass.obj",
+      "format": "obj",
+      "name": "mountain_B_grass",
+      "sockets": {
+        "down": "2F",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "rock_single_C": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/rock_single_C.obj",
+      "format": "obj",
+      "name": "rock_single_C",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "rock_single_D": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/rock_single_D.obj",
+      "format": "obj",
+      "name": "rock_single_D",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "rock_single_E": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/rock_single_E.obj",
+      "format": "obj",
+      "name": "rock_single_E",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "trees_A_cut": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/trees_A_cut.obj",
+      "format": "obj",
+      "name": "trees_A_cut",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "-1",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "trees_B_medium": {
+      "file_path": "res://Assets/KayKit_Medieval_Hexagon_Pack_1.0_FREE/Assets/obj/decoration/nature/trees_B_medium.obj",
+      "format": "obj",
+      "name": "trees_B_medium",
+      "sockets": {
+        "down": "2S",
+        "e": "2S",
+        "ne": "2S",
+        "nw": "2S",
+        "se": "2S",
+        "sw": "2S",
+        "up": "",
+        "w": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    }
+  }
+}

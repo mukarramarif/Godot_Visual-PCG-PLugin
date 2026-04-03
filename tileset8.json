@@ -1,0 +1,113 @@
+{
+  "grid_type": "square",
+  "hex_orientation": "flat",
+  "tile_size": 2.0,
+  "tile_spacing": 0.15,
+  "tiles": {
+    "Escarpment_Terrain_Corner_Outer_3x3_Top": {
+      "file_path": "res://Assets/modular_terrain_collection/Escarpment_Terrain_Corner_Outer_3x3_Top.obj",
+      "format": "obj",
+      "name": "Escarpment_Terrain_Corner_Outer_3x3_Top",
+      "sockets": {
+        "down": "0",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "2F",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Prop_Tree_Pine_1": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Prop_Tree_Pine_1.obj",
+      "format": "obj",
+      "name": "Hilly_Prop_Tree_Pine_1",
+      "sockets": {
+        "down": "2",
+        "east": "2S",
+        "north": "2S",
+        "south": "2S",
+        "up": "-1",
+        "west": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Prop_Tree_Pine_2": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Prop_Tree_Pine_2.obj",
+      "format": "obj",
+      "name": "Hilly_Prop_Tree_Pine_2",
+      "sockets": {
+        "down": "2",
+        "east": "2S",
+        "north": "2S",
+        "south": "2S",
+        "up": "-1",
+        "west": "2S"
+      },
+      "type": "3d",
+      "weight": 1.2
+    },
+    "Hilly_Prop_Tree_Pine_3": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Prop_Tree_Pine_3.obj",
+      "format": "obj",
+      "name": "Hilly_Prop_Tree_Pine_3",
+      "sockets": {
+        "down": "2",
+        "east": "2S",
+        "north": "2S",
+        "south": "2S",
+        "up": "-1",
+        "west": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Terrain_Grass_Floor": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Terrain_Grass_Floor.obj",
+      "format": "obj",
+      "name": "Hilly_Terrain_Grass_Floor",
+      "sockets": {
+        "down": "2",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "-1",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Terrain_Hill_Corner_Inner_2x2": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Terrain_Hill_Corner_Inner_2x2.obj",
+      "format": "obj",
+      "name": "Hilly_Terrain_Hill_Corner_Inner_2x2",
+      "sockets": {
+        "down": "2",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "2F",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Terrain_Hill_Corner_Inner_3x3": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Terrain_Hill_Corner_Inner_3x3.obj",
+      "format": "obj",
+      "name": "Hilly_Terrain_Hill_Corner_Inner_3x3",
+      "sockets": {
+        "down": "2",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "2F",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 0.6
+    }
+  }
+}

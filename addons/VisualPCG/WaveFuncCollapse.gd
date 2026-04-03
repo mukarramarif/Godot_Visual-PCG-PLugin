@@ -66,10 +66,17 @@ func run_wfc(tileset: Dictionary):
 
 	print("Grid type: %s, Hex orientation: %s" % [grid_type, hex_orientation])
 
+	_compute_neighbors_from_sockets()
+
 	# Validate tileset with detailed errors
 	var validation = validate_tileset_detailed()
 	if not validation["valid"]:
 		emit_signal("generation_failed", validation)
+		print("Tileset validation failed: %s\nDetails: %s\nSuggestions:\n- %s" % [
+			validation["message"],
+			validation["details"],
+			"\n- ".join(validation["suggestions"])
+		])
 		return null
 
 	prepare_tiles()
@@ -100,6 +107,7 @@ func run_wfc(tileset: Dictionary):
 		last_res["suggestions"] = []
 	last_res["suggestions"].append("The algorithm retried %d times with backtracking and still couldn't find a valid solution" % MAX_RETRIES)
 	last_res["suggestions"].append("Consider simplifying constraints or adding more compatible tiles")
+	print("Final error details:\n%s\nSuggestions:\n- %s" % [last_res.get("details", "No details"), "\n- ".join(last_res["suggestions"])])
 	emit_signal("generation_failed", last_res)
 	return null
 func save_grid_snapshot() -> Array:
@@ -284,6 +292,51 @@ func prepare_tiles():
 			"file_path": tile_data.get("file_path", "")
 		}
 	print("Prepared %d tile templates" % tile_templates.size())
+
+func _compute_neighbors_from_sockets() -> void:
+	var directions = get_current_directions()
+	for tile_name in tileset_data["tiles"]:
+		var tile = tileset_data["tiles"][tile_name]
+		if not tile.has("neighbors") or tile["neighbors"].is_empty():
+			var neighbors = {}
+			for direction in directions:
+				neighbors[direction] = []
+				for other_name in tileset_data["tiles"]:
+					if _can_connect_sockets(tile_name, direction, other_name):
+						neighbors[direction].append({
+							"tile": other_name,
+							"via": get_opposite_direction(direction)
+						})
+			tile["neighbors"] = neighbors
+
+func _can_connect_sockets(tile_a: String, direction: String, tile_b: String) -> bool:
+	var socket_a = tileset_data["tiles"][tile_a].get("sockets", {}).get(direction, "-1")
+	var opposite = get_opposite_direction(direction)
+	var socket_b = tileset_data["tiles"][tile_b].get("sockets", {}).get(opposite, "-1")
+	return _sockets_compatible(socket_a, socket_b)
+
+func _sockets_compatible(socket_a: String, socket_b: String) -> bool:
+	if socket_a == "-1" or socket_b == "-1":
+		return false
+	if socket_a.is_empty() or socket_b.is_empty():
+		return false
+
+	var a_symmetric = socket_a.ends_with("S")
+	var b_symmetric = socket_b.ends_with("S")
+
+	if a_symmetric and b_symmetric:
+		return socket_a == socket_b
+	if a_symmetric or b_symmetric:
+		return false
+
+	var a_flipped = socket_a.ends_with("F")
+	var b_flipped = socket_b.ends_with("F")
+	var a_base = socket_a.trim_suffix("F")
+	var b_base = socket_b.trim_suffix("F")
+
+	if a_base != b_base:
+		return false
+	return a_flipped != b_flipped
 
 func init_grid(size: Vector3i):
 	var effective_z = max(1, size.z)

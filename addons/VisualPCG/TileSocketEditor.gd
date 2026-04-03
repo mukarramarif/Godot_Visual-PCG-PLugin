@@ -951,6 +951,7 @@ func _on_save_tileset():
 func _save_to_file(path: String):
 	var data = {
 		"grid_type": grid_type,
+		"grid_size": {"x": grid_size_x, "y": grid_size_y, "z": grid_size_z},
 		"hex_orientation": hex_orientation,
 		"tile_size": tile_size,
 		"tile_spacing": tile_spacing,

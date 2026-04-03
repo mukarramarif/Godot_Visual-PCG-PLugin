@@ -1,0 +1,98 @@
+{
+  "grid_type": "square",
+  "hex_orientation": "pointy",
+  "tile_size": 1.2,
+  "tile_spacing": 0.0,
+  "tiles": {
+    "Beach_Terrain_Sand_Corner_Inner_2x2": {
+      "file_path": "res://Assets/modular_terrain_collection/Beach_Terrain_Sand_Corner_Inner_2x2.obj",
+      "format": "obj",
+      "name": "Beach_Terrain_Sand_Corner_Inner_2x2",
+      "sockets": {
+        "down": "0",
+        "east": "2S",
+        "north": "1S",
+        "south": "2S",
+        "up": "-1",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Beach_Terrain_Sand_Floor": {
+      "file_path": "res://Assets/modular_terrain_collection/Beach_Terrain_Sand_Floor.obj",
+      "format": "obj",
+      "name": "Beach_Terrain_Sand_Floor",
+      "sockets": {
+        "down": "1",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "1",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Beach_Terrain_Sand_Floor_Raised": {
+      "file_path": "res://Assets/modular_terrain_collection/Beach_Terrain_Sand_Floor_Raised.obj",
+      "format": "obj",
+      "name": "Beach_Terrain_Sand_Floor_Raised",
+      "sockets": {
+        "down": "1",
+        "east": "1S",
+        "north": "1S",
+        "south": "1S",
+        "up": "1F",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Beach_Terrain_Sand_Side_Gentle": {
+      "file_path": "res://Assets/modular_terrain_collection/Beach_Terrain_Sand_Side_Gentle.obj",
+      "format": "obj",
+      "name": "Beach_Terrain_Sand_Side_Gentle",
+      "sockets": {
+        "down": "1F",
+        "east": "1S",
+        "north": "1S",
+        "south": "2S",
+        "up": "1F",
+        "west": "1S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Cliff_Terrain_Corner_Outer_3x3_Top": {
+      "file_path": "res://Assets/modular_terrain_collection/Cliff_Terrain_Corner_Outer_3x3_Top.obj",
+      "format": "obj",
+      "name": "Cliff_Terrain_Corner_Outer_3x3_Top",
+      "sockets": {
+        "down": "0",
+        "east": "1S",
+        "north": "1S",
+        "south": "2S",
+        "up": "2F",
+        "west": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    },
+    "Hilly_Terrain_Grass_Floor": {
+      "file_path": "res://Assets/modular_terrain_collection/Hilly_Terrain_Grass_Floor.obj",
+      "format": "obj",
+      "name": "Hilly_Terrain_Grass_Floor",
+      "sockets": {
+        "down": "2",
+        "east": "2S",
+        "north": "2S",
+        "south": "2S",
+        "up": "-1",
+        "west": "2S"
+      },
+      "type": "3d",
+      "weight": 1.0
+    }
+  }
+}
