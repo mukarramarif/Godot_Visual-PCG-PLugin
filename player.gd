@@ -65,7 +65,8 @@ func _input(event):
 		# 					player.get_node("AnimationPlayer").stop()
 		# 					player.get_node("BronzeSword").visible = false
 		# 					player.get_node("SwordVictory").visible = false
-
+		if event is InputEventKey and Input.is_action_pressed("wave"):
+			$AnimationPlayer.play("wave")
 		if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 			if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 				Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)

@@ -11,9 +11,10 @@ script = ExtResource("1_f3sb7")
 [node name="PCGNode" type="Node3D" parent="." unique_id=1703878924]
 script = ExtResource("2_tlwt5")
 map_detail = ExtResource("3_aqk2v")
-tile_size = 1.2
-iteration = 5
+Collision = true
 metadata/_custom_type_script = "uid://726d8cvohewt"
 
 [node name="Player" parent="." unique_id=1464267280 instance=ExtResource("4_aqk2v")]
+physics_interpolation_mode = 1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.10411787, 0, 0.37419233)
+slide_on_ceiling = false

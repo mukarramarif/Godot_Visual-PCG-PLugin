@@ -27,8 +27,8 @@ const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
-const MAX_RETRIES: int = 10
-const MAX_BACKTRACKS_PER_ATTEMPT: int = 100
+var MAX_RETRIES: int = 10
+var MAX_BACKTRACKS_PER_ATTEMPT: int = 100
 
 
 ## Error types
