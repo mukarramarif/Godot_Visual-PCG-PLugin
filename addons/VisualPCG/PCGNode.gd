@@ -25,16 +25,13 @@ func _run_wfc():
 	if grid != null:
 		if Collision:
 			wfc_instance.instantiate_tiles_in_world(self)
-			var world = get_tree().current_scene
 			for child in get_children():
-				if child is Node3D:
-					var collision_shape = CollisionShape3D.new()
-					var box_shape = BoxShape3D.new()
-					box_shape.extents = Vector3(tile_size / 2, tile_size / 2, tile_size / 2)
-					collision_shape.shape = box_shape
-					child.add_child(collision_shape)
-					collision_shape.debug_color = Color(1, 0, 0, 0.5)
-					collision_shape.debug_fill = true
-					# collision_shape.translation = Vector3(0, tile_size / 2, 0)
+				_create_collision_for_node(child)
 		else:
 			wfc_instance.instantiate_tiles_in_world(self)
+
+func _create_collision_for_node(node: Node):
+	if node is MeshInstance3D:
+		node.create_trimesh_collision()
+	for c in node.get_children():
+		_create_collision_for_node(c)
