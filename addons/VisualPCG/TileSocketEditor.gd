@@ -8,6 +8,7 @@ var wfc_generator: Node = null
 var tile_library: Dictionary = {}
 var current_tile: String = ""
 
+
 # UI Elements
 var main_hsplit: HSplitContainer
 var tile_list: ItemList
@@ -16,6 +17,7 @@ var viewport: SubViewport
 var properties_panel: VBoxContainer
 var toolbar: HBoxContainer
 var socket_inputs: Dictionary = {}
+var weight_spin: SpinBox = null
 var highlight_cube: HighlighCube = null
 # 3D Preview
 var preview_root: Node3D
@@ -324,7 +326,7 @@ func setup_socket_editor_ui():
 	var weight_label = Label.new()
 	weight_label.text = "Weight:"
 	weight_hbox.add_child(weight_label)
-	var weight_spin = SpinBox.new()
+	weight_spin = SpinBox.new()
 	weight_spin.name = "WeightSpin"
 	weight_spin.min_value = 0.1
 	weight_spin.max_value = 10.0
@@ -568,6 +570,8 @@ func update_socket_inputs():
 		for direction in get_current_directions():
 			if socket_inputs.has(direction):
 				socket_inputs[direction].text = ""
+		if weight_spin:
+			weight_spin.set_value_no_signal(1.0)
 		return
 
 	var tile_data = tile_library[current_tile]
@@ -577,9 +581,9 @@ func update_socket_inputs():
 		if socket_inputs.has(direction):
 			socket_inputs[direction].text = sockets.get(direction, "-1")
 
-	var weight_spin = properties_panel.get_node_or_null("WeightSpin")
 	if weight_spin:
-		weight_spin.value = tile_data.get("weight", 1.0)
+		print("Setting weight spin to: ", tile_data.get("weight", 1.0))
+		weight_spin.set_value_no_signal(tile_data.get("weight", 1.0))
 
 	var name_label = properties_panel.get_node_or_null("TileNameLabel")
 	if name_label:
