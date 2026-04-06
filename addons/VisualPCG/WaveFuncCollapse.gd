@@ -23,12 +23,22 @@ var problematic_tiles: Dictionary = {}  # tile_name -> count of issues
 signal generation_completed(grid_res: Array)
 signal generation_failed(error: Dictionary)
 
+signal cell_collapsed(cell_pos: Vector3i, tile_name: String, entropy: int)
+signal cell_contradiction(cell_pos: Vector3i, tried_tiles: Array)
+signal propagation_update(affected_cells: int, remaining: int)
+signal progress_update(percent: float, collapsed: int, total: int, backtracks: int)
+signal generation_started(total_cells: int)
+signal generation_stopped()
+
 const HEX_FLAT_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const HEX_POINTY_DIRECTIONS = ["ne", "e", "se", "sw", "w", "nw", "up", "down"]
 const SQUARE_DIRECTIONS = ["north", "south", "east", "west", "up", "down"]
 
 const MAX_RETRIES: int = 3
 const MAX_BACKTRACKS_PER_ATTEMPT: int = 3
+
+var generation_speed_ms: int = 0
+var stop_requested: bool = false
 
 
 ## Error types
@@ -46,7 +56,8 @@ enum ErrorType {
 func run_wfc(tileset: Dictionary):
 	print("=== Starting WFC Generation ===")
 
-	# Reset error tracking
+	stop_requested = false
+
 	last_error = {}
 	contradiction_history = []
 	problematic_tiles = {}
@@ -56,7 +67,6 @@ func run_wfc(tileset: Dictionary):
 	tile_size = tileset.get("tile_size", 2.0)
 	tile_spacing = tileset.get("tile_spacing", 0.0)
 
-	# Auto-detect hex orientation from socket directions if not specified
 	if tileset.has("hex_orientation"):
 		hex_orientation = tileset.get("hex_orientation")
 	elif grid_type == "hex":
@@ -68,7 +78,6 @@ func run_wfc(tileset: Dictionary):
 
 	_compute_neighbors_from_sockets()
 
-	# Validate tileset with detailed errors
 	var validation = validate_tileset_detailed()
 	if not validation["valid"]:
 		emit_signal("generation_failed", validation)
@@ -81,14 +90,21 @@ func run_wfc(tileset: Dictionary):
 
 	prepare_tiles()
 
-	# Retry loop: attempt the full WFC up to MAX_RETRIES times
+	var total_cells = grid_size.x * grid_size.y * grid_size.z
+	emit_signal("generation_started", total_cells)
+
 	var last_res: Dictionary = {}
 	for attempt in range(MAX_RETRIES):
+		if stop_requested:
+			print("Generation stopped by user.")
+			emit_signal("generation_stopped")
+			return null
+
 		print("=== WFC Attempt %d / %d ===" % [attempt + 1, MAX_RETRIES])
 		randomize()
 		init_grid(grid_size)
 
-		var result = collapse_grid_with_diagnostics()
+		var result = await collapse_grid_with_diagnostics()
 
 		if result["success"]:
 			print("WFC Generation completed successfully on attempt %d!" % (attempt + 1))
@@ -100,7 +116,6 @@ func run_wfc(tileset: Dictionary):
 			var backtrack_count = result.get("backtrack_count", 0)
 			print("Attempt %d failed (backtracks used: %d). Retrying..." % [attempt + 1, backtrack_count])
 
-	# All attempts exhausted
 	print("WFC Generation failed after %d attempts." % MAX_RETRIES)
 	last_res["message"] = "Generation failed after %d attempts.\n\n%s" % [MAX_RETRIES, last_res.get("message", "")]
 	if not last_res.has("suggestions"):
@@ -110,6 +125,13 @@ func run_wfc(tileset: Dictionary):
 	print("Final error details:\n%s\nSuggestions:\n- %s" % [last_res.get("details", "No details"), "\n- ".join(last_res["suggestions"])])
 	emit_signal("generation_failed", last_res)
 	return null
+
+func stop_generation() -> void:
+	stop_requested = true
+
+func set_generation_speed(delay_ms: int) -> void:
+	generation_speed_ms = clamp(delay_ms, 0, 5000)
+
 func save_grid_snapshot() -> Array:
 	var snapshot = []
 	for z in range(grid.size()):
@@ -320,6 +342,8 @@ func _sockets_compatible(socket_a: String, socket_b: String) -> bool:
 		return false
 	if socket_a.is_empty() or socket_b.is_empty():
 		return false
+	if socket_a == "0" or socket_b == "0":
+		return true
 
 	var a_symmetric = socket_a.ends_with("S")
 	var b_symmetric = socket_b.ends_with("S")
@@ -370,14 +394,20 @@ func init_grid(size: Vector3i):
 func collapse_grid_with_diagnostics() -> Dictionary:
 	var iterations = 0
 	var total_cells = grid_size.x * grid_size.y * grid_size.z
-	var max_iterations = total_cells * 20  # Extra headroom for backtracking
+	var max_iterations = total_cells * 20
 
-	# Backtracking stack: each entry is { "snapshot": <grid_snapshot>, "cell_pos": Vector3i, "tried_tile": String }
 	var backtrack_stack: Array = []
 	var backtrack_count: int = 0
+	var collapsed_count = 0
 
 	while not is_grid_fully_collapsed():
+		if stop_requested:
+			return {"success": false, "message": "Generation stopped"}
+
 		iterations += 1
+
+		if generation_speed_ms > 0:
+			await get_tree().create_timer(generation_speed_ms / 1000.0).timeout
 
 		if iterations > max_iterations:
 			var err = create_error(
@@ -396,13 +426,14 @@ func collapse_grid_with_diagnostics() -> Dictionary:
 		var cell = find_lowest_entropy_cell()
 
 		if cell == null:
-			# Contradiction: a cell has 0 possibilities — try to backtrack
+			emit_signal("cell_contradiction", Vector3i.ZERO, [])
 			var bt_result = _backtrack(backtrack_stack)
 			if not bt_result["success"]:
 				var err = analyze_contradiction()
 				err["backtrack_count"] = backtrack_count
 				return err
 			backtrack_count += 1
+			emit_signal("progress_update", float(collapsed_count) / float(total_cells) * 100.0, collapsed_count, total_cells, backtrack_count)
 			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
 				var err = create_error(
 					ErrorType.CONTRADICTION,
@@ -416,13 +447,14 @@ func collapse_grid_with_diagnostics() -> Dictionary:
 			continue
 
 		if cell["possible_tiles"].size() == 0:
-			# Safety check — backtrack
+			emit_signal("cell_contradiction", cell["position"], [])
 			var bt_result = _backtrack(backtrack_stack)
 			if not bt_result["success"]:
 				var err = analyze_contradiction_at_cell(cell)
 				err["backtrack_count"] = backtrack_count
 				return err
 			backtrack_count += 1
+			emit_signal("progress_update", float(collapsed_count) / float(total_cells) * 100.0, collapsed_count, total_cells, backtrack_count)
 			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
 				var err = create_error(
 					ErrorType.CONTRADICTION,
@@ -435,11 +467,10 @@ func collapse_grid_with_diagnostics() -> Dictionary:
 				return err
 			continue
 
-		# Save a snapshot BEFORE collapsing so we can roll back
 		var snapshot = save_grid_snapshot()
 
-		# Collapse the cell
 		if not collapse_cell(cell):
+			emit_signal("cell_contradiction", cell["position"], cell["collapse_history"])
 			var bt_result = _backtrack(backtrack_stack)
 			if not bt_result["success"]:
 				var err = analyze_contradiction_at_cell(cell)
@@ -449,27 +480,29 @@ func collapse_grid_with_diagnostics() -> Dictionary:
 			continue
 
 		var chosen_tile = cell["tile"]
+		collapsed_count += 1
+		emit_signal("cell_collapsed", cell["position"], chosen_tile, cell["possible_tiles"].size())
 
-		# Push onto backtrack stack
 		backtrack_stack.append({
 			"snapshot": snapshot,
 			"cell_pos": cell["position"],
 			"tried_tile": chosen_tile
 		})
 
-		# Record what tile was placed
 		cell["collapse_history"].append(chosen_tile)
 
-		# Propagate and check for contradictions
 		var propagation_result = propagate_with_tracking(cell)
+		if propagation_result.get("affected_cells", 0) > 0:
+			emit_signal("propagation_update", propagation_result["affected_cells"], total_cells - collapsed_count)
+
 		if not propagation_result["success"]:
-			# Contradiction during propagation — backtrack instead of failing
+			emit_signal("cell_contradiction", cell["position"], cell["collapse_history"])
 			var bt_result = _backtrack(backtrack_stack)
 			if not bt_result["success"]:
-				# Can't backtrack any further
 				propagation_result["backtrack_count"] = backtrack_count
 				return propagation_result
 			backtrack_count += 1
+			emit_signal("progress_update", float(collapsed_count) / float(total_cells) * 100.0, collapsed_count, total_cells, backtrack_count)
 			if backtrack_count > MAX_BACKTRACKS_PER_ATTEMPT:
 				var err = create_error(
 					ErrorType.CONTRADICTION,
@@ -482,12 +515,11 @@ func collapse_grid_with_diagnostics() -> Dictionary:
 				return err
 			continue
 
-		# Progress update
-		if iterations % 50 == 0:
-			var progress = get_collapse_progress() * 100
-			print("Progress: %.1f%% (%d/%d cells, %d backtracks)" % [progress, get_collapsed_count(), total_cells, backtrack_count])
+		if iterations % 5 == 0:
+			emit_signal("progress_update", float(collapsed_count) / float(total_cells) * 100.0, collapsed_count, total_cells, backtrack_count)
 
 	print("Collapse complete with %d backtracks." % backtrack_count)
+	emit_signal("progress_update", 100.0, collapsed_count, total_cells, backtrack_count)
 	return {"success": true, "backtrack_count": backtrack_count}
 
 ## Backtrack: pop the last entry from the stack, restore the snapshot, and
@@ -516,6 +548,7 @@ func _backtrack(backtrack_stack: Array) -> Dictionary:
 func propagate_with_tracking(start_cell: Dictionary) -> Dictionary:
 	var queue = [start_cell]
 	var processed = {}
+	var affected_cells = 0
 
 	while queue.size() > 0:
 		var curr = queue.pop_front()
@@ -545,10 +578,8 @@ func propagate_with_tracking(start_cell: Dictionary) -> Dictionary:
 					new_possibilities.append(possible)
 
 			if new_possibilities.size() == 0 and old_possibilities.size() > 0:
-				# Contradiction!
 				var neighbor_pos = neighbor_cell["position"]
 
-				# Track problematic tiles
 				if not problematic_tiles.has(curr["tile"]):
 					problematic_tiles[curr["tile"]] = 0
 				problematic_tiles[curr["tile"]] += 1
@@ -567,8 +598,9 @@ func propagate_with_tracking(start_cell: Dictionary) -> Dictionary:
 			if new_possibilities.size() < old_possibilities.size():
 				neighbor_cell["possible_tiles"] = new_possibilities
 				queue.append(neighbor_cell)
+				affected_cells += 1
 
-	return {"success": true}
+	return {"success": true, "affected_cells": affected_cells}
 
 ## Analyze why a contradiction occurred
 func analyze_contradiction() -> Dictionary:

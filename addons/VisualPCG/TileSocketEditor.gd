@@ -145,6 +145,8 @@ func setup_ui():
 	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	center_panel.add_child(instructions)
 
+	setup_visualization_panel(center_panel)
+
 	# === RIGHT PANEL ===
 	var right_container = VBoxContainer.new()
 	right_container.name = "RightContainer"
@@ -244,6 +246,55 @@ func setup_toolbar():
 	load_btn.text = "Load"
 	load_btn.pressed.connect(_on_load_tileset)
 	toolbar.add_child(load_btn)
+
+	toolbar.add_child(VSeparator.new())
+
+	# Speed slider
+	var speed_label = Label.new()
+	speed_label.text = "Speed:"
+	toolbar.add_child(speed_label)
+
+	var speed_slider = HSlider.new()
+	speed_slider.name = "SpeedSlider"
+	speed_slider.custom_minimum_size.x = 100
+	speed_slider.min_value = 0
+	speed_slider.max_value = 1000
+	speed_slider.step = 10
+	speed_slider.value = 0
+	speed_slider.tooltip_text = "0 = Instant, higher = slower"
+	speed_slider.value_changed.connect(_on_speed_changed)
+	toolbar.add_child(speed_slider)
+
+	var speed_value_label = Label.new()
+	speed_value_label.name = "SpeedValueLabel"
+	speed_value_label.text = "Instant"
+	speed_value_label.custom_minimum_size.x = 60
+	toolbar.add_child(speed_value_label)
+
+	toolbar.add_child(VSeparator.new())
+
+	# Play/Pause button
+	var play_btn = Button.new()
+	play_btn.name = "PlayPauseButton"
+	play_btn.icon = null
+	play_btn.text = "Play"
+	play_btn.pressed.connect(_on_play_pause_pressed)
+	toolbar.add_child(play_btn)
+
+	# Stop button
+	var stop_btn = Button.new()
+	stop_btn.text = "Stop"
+	stop_btn.pressed.connect(_on_stop_pressed)
+	toolbar.add_child(stop_btn)
+
+	# Progress bar
+	var progress_bar = ProgressBar.new()
+	progress_bar.name = "ProgressBar"
+	progress_bar.custom_minimum_size.x = 150
+	progress_bar.max_value = 100
+	progress_bar.value = 0
+	progress_bar.show_percentage = true
+	toolbar.add_child(progress_bar)
 
 	toolbar.add_child(VSeparator.new())
 
@@ -422,6 +473,35 @@ func build_presets(container: VBoxContainer):
 
 	container.add_child(num_hbox)
 
+	var tb_hbox = HBoxContainer.new()
+	var top_label = Label.new()
+	top_label.text = "Top:"
+	top_label.custom_minimum_size.x = 65
+	tb_hbox.add_child(top_label)
+
+	var top_input = LineEdit.new()
+	top_input.name = "PresetTopInput"
+	top_input.placeholder_text = "e.g. -1"
+	top_input.text = "-1"
+	top_input.custom_minimum_size.x = 50
+	top_input.tooltip_text = "Socket value for Up"
+	tb_hbox.add_child(top_input)
+
+	var bot_label = Label.new()
+	bot_label.text = "  Bot:"
+	bot_label.custom_minimum_size.x = 60
+	tb_hbox.add_child(bot_label)
+
+	var bot_input = LineEdit.new()
+	bot_input.name = "PresetBotInput"
+	bot_input.placeholder_text = "e.g. 0"
+	bot_input.text = "0"
+	bot_input.custom_minimum_size.x = 50
+	bot_input.tooltip_text = "Socket value for Down"
+	tb_hbox.add_child(bot_input)
+
+	container.add_child(tb_hbox)
+
 	var preset_grid = GridContainer.new()
 	preset_grid.columns = 2
 	container.add_child(preset_grid)
@@ -433,6 +513,14 @@ func build_presets(container: VBoxContainer):
 	var get_asym = func() -> String:
 		var v = asym_input.text.strip_edges()
 		return v if v != "" else "1"
+
+	var get_top = func() -> String:
+		var v = top_input.text.strip_edges()
+		return v if v != "" else "-1"
+
+	var get_bot = func() -> String:
+		var v = bot_input.text.strip_edges()
+		return v if v != "" else "0"
 
 	var presets = []
 	if grid_type == "hex":
@@ -454,8 +542,9 @@ func build_presets(container: VBoxContainer):
 		presets = [
 			["All -1", func(): apply_all_sockets("-1")],
 			["All 0", func(): apply_all_sockets("0")],
-			["Floor (S)", func(): apply_floor_preset_with(get_sym.call())],
-			["Wall N/S (S)", func(): apply_wall_ns_preset_with(get_sym.call())],
+			["All Sides (S)", func(): apply_floor_preset_with(get_sym.call(), get_top.call(), get_bot.call())],
+			["Wall N/S (S)", func(): apply_wall_ns_preset_with(get_sym.call(), get_top.call(), get_bot.call())],
+			["Wall E/W (S)", func(): apply_wall_ew_preset_with(get_sym.call(), get_top.call(), get_bot.call())],
 		]
 
 	for preset in presets:
@@ -528,30 +617,52 @@ func apply_open_hex_with(sym_value: String):
 func apply_floor_preset():
 	apply_floor_preset_with("1S")
 
-func apply_floor_preset_with(sym_value: String):
+func apply_floor_preset_with(sym_value: String, top_value: String = "-1", bot_value: String = "0"):
 	if current_tile.is_empty():
 		return
 	for direction in ["north", "south", "east", "west"]:
 		socket_inputs[direction].text = sym_value
 		_on_socket_changed(sym_value, direction)
-	socket_inputs["up"].text = "-1"
-	socket_inputs["down"].text = "0"
-	_on_socket_changed("-1", "up")
-	_on_socket_changed("0", "down")
+	socket_inputs["up"].text = top_value
+	socket_inputs["down"].text = bot_value
+	_on_socket_changed(top_value, "up")
+	_on_socket_changed(bot_value, "down")
 
 func apply_wall_ns_preset():
 	apply_wall_ns_preset_with("1S")
 
-func apply_wall_ns_preset_with(sym_value: String):
+func apply_wall_ns_preset_with(sym_value: String, top_value: String = "-1", bot_value: String = "-1"):
 	if current_tile.is_empty():
 		return
 	socket_inputs["north"].text = sym_value
 	socket_inputs["south"].text = sym_value
 	_on_socket_changed(sym_value, "north")
 	_on_socket_changed(sym_value, "south")
-	for direction in ["east", "west", "up", "down"]:
+	for direction in ["east", "west"]:
 		socket_inputs[direction].text = "-1"
 		_on_socket_changed("-1", direction)
+	socket_inputs["up"].text = top_value
+	_on_socket_changed(top_value, "up")
+	socket_inputs["down"].text = bot_value
+	_on_socket_changed(bot_value, "down")
+
+func apply_wall_ew_preset():
+	apply_wall_ew_preset_with("1S")
+
+func apply_wall_ew_preset_with(sym_value: String, top_value: String = "-1", bot_value: String = "-1"):
+	if current_tile.is_empty():
+		return
+	socket_inputs["east"].text = sym_value
+	socket_inputs["west"].text = sym_value
+	_on_socket_changed(sym_value, "east")
+	_on_socket_changed(sym_value, "west")
+	for direction in ["north", "south"]:
+		socket_inputs[direction].text = "-1"
+		_on_socket_changed("-1", direction)
+	socket_inputs["up"].text = top_value
+	_on_socket_changed(top_value, "up")
+	socket_inputs["down"].text = bot_value
+	_on_socket_changed(bot_value, "down")
 
 func _on_socket_changed(new_text: String, direction: String):
 	if current_tile.is_empty() or not tile_library.has(current_tile):
@@ -639,7 +750,8 @@ func _parse_socket(socket: String) -> Dictionary:
 
 	if s == "-1":
 		return { "valid": true, "base": "-1", "type": "none" }
-
+	if s == "0":
+		return { "valid": true, "base": "0", "type": "zero" }
 	if s.ends_with("S"):
 		var base = s.trim_suffix("S")
 		if base.is_valid_int() and base.to_int() >= 0:
@@ -671,7 +783,8 @@ func sockets_compatible(socket_a: String, socket_b: String) -> bool:
 	# "-1" never connects
 	if a["type"] == "none" or b["type"] == "none":
 		return false
-
+	if a["type"] == "zero" or b["type"] == "zero":
+		return true
 	# Both symmetric: must share the same base number (e.g. 2S <-> 2S)
 	if a["type"] == "symmetric" and b["type"] == "symmetric":
 		return a["base"] == b["base"]
@@ -748,6 +861,10 @@ func setup_3d_preview():
 	ground.material_override = ground_mat
 	ground.position.y = -0.5
 	preview_root.add_child(ground)
+
+	live_preview_root = Node3D.new()
+	live_preview_root.name = "LivePreviewRoot"
+	preview_root.add_child(live_preview_root)
 
 func update_camera_position():
 	if not preview_camera:
@@ -1024,6 +1141,18 @@ func _update_toolbar_spinboxes():
 
 # ===== WFC ===== #
 
+var is_generating: bool = false
+var is_paused: bool = false
+var current_generation_speed: int = 0
+var collapsed_cells_visual: Dictionary = {}
+
+var visualization_panel: PanelContainer
+var grid_visualizer: Control
+var log_panel: RichTextLabel
+var log_scroll: ScrollContainer
+var current_layer_display: int = 0
+var live_preview_root: Node3D
+
 func _on_run_wfc():
 	if not wfc_generator:
 		show_message("WFC Generator not available!")
@@ -1031,6 +1160,18 @@ func _on_run_wfc():
 	if tile_library.size() == 0:
 		show_message("No tiles imported!")
 		return
+
+	is_generating = true
+	is_paused = false
+	collapsed_cells_visual.clear()
+	update_visualization_ui()
+
+	var speed_slider = toolbar.get_node_or_null("SpeedSlider") as HSlider
+	if speed_slider:
+		current_generation_speed = int(speed_slider.max_value - speed_slider.value)
+		wfc_generator.set_generation_speed(current_generation_speed)
+
+	connect_wfc_signals()
 
 	var tileset_data = convert_sockets_to_neighbors()
 	tileset_data["grid_type"] = grid_type
@@ -1040,6 +1181,277 @@ func _on_run_wfc():
 
 	wfc_generator.grid_size = Vector3i(grid_size_x, grid_size_y, grid_size_z)
 	wfc_generator.run_wfc(tileset_data)
+
+func connect_wfc_signals():
+	if not wfc_generator:
+		return
+	if not wfc_generator.generation_completed.is_connected(_on_generation_completed):
+		wfc_generator.generation_completed.connect(_on_generation_completed)
+	if not wfc_generator.generation_failed.is_connected(_on_generation_failed):
+		wfc_generator.generation_failed.connect(_on_generation_failed)
+	if not wfc_generator.generation_started.is_connected(_on_generation_started):
+		wfc_generator.generation_started.connect(_on_generation_started)
+	if not wfc_generator.generation_stopped.is_connected(_on_generation_stopped):
+		wfc_generator.generation_stopped.connect(_on_generation_stopped)
+	if not wfc_generator.cell_collapsed.is_connected(_on_cell_collapsed):
+		wfc_generator.cell_collapsed.connect(_on_cell_collapsed)
+	if not wfc_generator.cell_contradiction.is_connected(_on_cell_contradiction):
+		wfc_generator.cell_contradiction.connect(_on_cell_contradiction)
+	if not wfc_generator.progress_update.is_connected(_on_progress_update):
+		wfc_generator.progress_update.connect(_on_progress_update)
+
+func _on_generation_started(total_cells: int):
+	print("Generation started: %d cells" % total_cells)
+	add_log_entry("Started generation: %d cells" % total_cells, Color.CORNFLOWER_BLUE)
+	clear_live_preview()
+	update_visualization_ui()
+
+func _on_generation_completed(grid_result: Array):
+	print("Generation completed successfully!")
+	add_log_entry("Generation completed successfully!", Color.GREEN)
+	is_generating = false
+	update_visualization_ui()
+
+func _on_generation_failed(error: Dictionary):
+	print("Generation failed: ", error.get("message", "Unknown error"))
+	add_log_entry("FAILED: " + error.get("message", "Unknown error"), Color.RED)
+	is_generating = false
+	update_visualization_ui()
+
+func _on_generation_stopped():
+	print("Generation stopped by user")
+	add_log_entry("Generation stopped by user", Color.ORANGE)
+	is_generating = false
+	update_visualization_ui()
+
+func _on_cell_collapsed(cell_pos: Vector3i, tile_name: String, entropy: int):
+	collapsed_cells_visual[cell_pos] = tile_name
+	add_log_entry("Cell %s collapsed to %s" % [str(cell_pos), tile_name], Color.WHITE, false)
+	update_visualization_ui()
+	add_tile_to_live_preview(cell_pos, tile_name)
+
+func _on_cell_contradiction(cell_pos: Vector3i, tried_tiles: Array):
+	add_log_entry("Contradiction at %s - backtracking..." % str(cell_pos), Color.YELLOW)
+
+func _on_progress_update(percent: float, collapsed: int, total: int, backtracks: int):
+	var progress_bar = toolbar.get_node_or_null("ProgressBar") as ProgressBar
+	if progress_bar:
+		progress_bar.value = percent
+	add_log_entry("Progress: %.1f%% (%d/%d cells, %d backtracks)" % [percent, collapsed, total, backtracks], Color.GRAY, false)
+	update_visualization_ui()
+
+func _on_speed_changed(value: float):
+	var speed_value_label = toolbar.get_node_or_null("SpeedValueLabel") as Label
+	if speed_value_label:
+		if value == 0:
+			speed_value_label.text = "Instant"
+		elif value < 100:
+			speed_value_label.text = "Fast"
+		elif value < 500:
+			speed_value_label.text = "Medium"
+		elif value < 800:
+			speed_value_label.text = "Slow"
+		else:
+			speed_value_label.text = "Very Slow"
+
+	current_generation_speed = int(value)
+	if wfc_generator:
+		wfc_generator.set_generation_speed(current_generation_speed)
+
+func _on_play_pause_pressed():
+	var play_btn = toolbar.get_node_or_null("PlayPauseButton") as Button
+	if not play_btn:
+		return
+
+	if is_paused:
+		is_paused = false
+		play_btn.text = "Pause"
+		add_log_entry("Generation resumed", Color.CORNFLOWER_BLUE)
+	else:
+		is_paused = true
+		play_btn.text = "Resume"
+		add_log_entry("Generation paused", Color.ORANGE)
+
+	update_visualization_ui()
+
+func _on_stop_pressed():
+	if wfc_generator:
+		wfc_generator.stop_generation()
+	add_log_entry("Stop requested...", Color.ORANGE)
+
+func update_visualization_ui():
+	var play_btn = toolbar.get_node_or_null("PlayPauseButton") as Button
+	if play_btn:
+		play_btn.disabled = not is_generating
+		if is_paused:
+			play_btn.text = "Resume"
+		else:
+			play_btn.text = "Pause"
+
+	if grid_visualizer:
+		grid_visualizer.queue_redraw()
+
+func add_log_entry(text: String, color: Color = Color.WHITE, print_it: bool = true):
+	if print_it:
+		print("[LOG] ", text)
+
+	if log_panel:
+		log_panel.append_text("[color=#%s]%s[/color]\n" % [color.to_html(), text])
+		log_scroll.ensure_control_visible(log_panel)
+
+func setup_visualization_panel(parent: VBoxContainer):
+	visualization_panel = PanelContainer.new()
+	visualization_panel.custom_minimum_size.y = 200
+	parent.add_child(visualization_panel)
+
+	var split = HSplitContainer.new()
+	visualization_panel.add_child(split)
+
+	var grid_container = VBoxContainer.new()
+	grid_container.custom_minimum_size.x = 300
+	split.add_child(grid_container)
+
+	var grid_header = HBoxContainer.new()
+	grid_container.add_child(grid_header)
+
+	var grid_title = Label.new()
+	grid_title.text = "2D Grid View (Z="
+	grid_header.add_child(grid_title)
+
+	var layer_spin = SpinBox.new()
+	layer_spin.name = "LayerSpin"
+	layer_spin.min_value = 0
+	layer_spin.max_value = 10
+	layer_spin.value = 0
+	layer_spin.custom_minimum_size.x = 50
+	layer_spin.value_changed.connect(_on_layer_changed)
+	grid_header.add_child(layer_spin)
+
+	var grid_close = Label.new()
+	grid_close.text = ")"
+	grid_header.add_child(grid_close)
+
+	grid_visualizer = Control.new()
+	grid_visualizer.custom_minimum_size.y = 150
+	grid_visualizer.name = "GridVisualizer"
+	grid_visualizer.draw.connect(_draw_grid_visualizer)
+	grid_container.add_child(grid_visualizer)
+
+	log_scroll = ScrollContainer.new()
+	log_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(log_scroll)
+
+	log_panel = RichTextLabel.new()
+	log_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	log_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	log_panel.bbcode_enabled = true
+	log_panel.scroll_following = true
+	log_panel.add_theme_font_size_override("normal_font_size", 10)
+	log_scroll.add_child(log_panel)
+
+	add_log_entry("VisualPCG WFC Debug Console", Color.CYAN)
+	add_log_entry("Ready for generation...", Color.GRAY)
+
+func _on_layer_changed(value: float):
+	current_layer_display = int(value)
+	if grid_visualizer:
+		grid_visualizer.queue_redraw()
+
+func _draw_grid_visualizer():
+	if not grid_visualizer:
+		return
+
+	var rect = grid_visualizer.get_rect()
+	var cell_size = min(rect.size.x / max(grid_size_x, 1), rect.size.y / max(grid_size_y, 1))
+	var offset_x = (rect.size.x - cell_size * grid_size_x) / 2
+	var offset_y = (rect.size.y - cell_size * grid_size_y) / 2
+
+	for x in range(grid_size_x):
+		for y in range(grid_size_y):
+			var cell_rect = Rect2(offset_x + x * cell_size, offset_y + y * cell_size, cell_size - 2, cell_size - 2)
+			var pos_3d = Vector3i(x, y, current_layer_display)
+			var color = Color.GRAY
+
+			if collapsed_cells_visual.has(pos_3d):
+				var tile_name = collapsed_cells_visual[pos_3d]
+				color = get_tile_color(tile_name)
+
+			grid_visualizer.draw_rect(cell_rect, color, true)
+			grid_visualizer.draw_rect(cell_rect, Color.WHITE * 0.3, false, 1.0)
+
+func get_tile_color(tile_name: String) -> Color:
+	var hash = tile_name.hash()
+	var hue = float(hash % 360) / 360.0
+	return Color.from_hsv(hue, 0.6, 0.8)
+
+func add_tile_to_live_preview(cell_pos: Vector3i, tile_name: String):
+	if not live_preview_root:
+		return
+
+	if not tile_library.has(tile_name):
+		return
+
+	var tile_data = tile_library[tile_name]
+	var file_path = tile_data.get("file_path", "")
+	if file_path.is_empty():
+		return
+
+	var tile_instance = load_tile_model(file_path)
+	if not tile_instance:
+		return
+
+	var world_pos = cell_to_world(cell_pos)
+	tile_instance.position = world_pos
+
+	tile_instance.modulate.a = 0.8
+
+	var tween = create_tween()
+	tween.tween_property(tile_instance, "scale", Vector3.ONE, 0.3).from(Vector3.ZERO)
+	tween.tween_property(tile_instance, "modulate:a", 1.0, 0.2)
+
+	live_preview_root.add_child(tile_instance)
+
+func cell_to_world(cell_pos: Vector3i) -> Vector3:
+	var x = cell_pos.x * (tile_size + tile_spacing)
+	var y = cell_pos.z * (tile_size + tile_spacing)
+	var z = -cell_pos.y * (tile_size + tile_spacing)
+	return Vector3(x, y, z)
+
+func clear_live_preview():
+	if live_preview_root:
+		for child in live_preview_root.get_children():
+			child.queue_free()
+
+func load_tile_model(file_path: String) -> Node3D:
+	var ext = file_path.get_extension().to_lower()
+	var model: Node3D
+
+	if ext == "tscn":
+		var scene = load(file_path)
+		if scene:
+			model = scene.instantiate()
+	elif ext in ["obj", "glb", "gltf", "fbx"]:
+		var import_result = GLTFDocument.new()
+		var state = GLTFState.new()
+		var file = FileAccess.open(file_path, FileAccess.READ)
+		if file:
+			var bytes = file.get_buffer(file.get_length())
+			file.close()
+			var err = import_result.append_from_buffer(bytes, file_path, state)
+			if err == OK:
+				model = import_result.generate_scene(state)
+
+	if not model:
+		var mesh_instance = MeshInstance3D.new()
+		var box = BoxMesh.new()
+		box.size = Vector3(tile_size, tile_size, tile_size)
+		mesh_instance.mesh = box
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color.GRAY
+		mesh_instance.material_override = mat
+		model = mesh_instance
+
+	return model
 
 func convert_sockets_to_neighbors() -> Dictionary:
 	var result = {"tiles": {}}
@@ -1057,6 +1469,7 @@ func convert_sockets_to_neighbors() -> Dictionary:
 		tile_data["neighbors"] = neighbors
 		result["tiles"][tile_name] = tile_data
 	return result
+
 # Display a simple message dialog
 func show_message(text: String):
 	var dialog = AcceptDialog.new()
