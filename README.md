@@ -38,8 +38,17 @@ This is a plugin created for Godot 4.x and forwards, allowing users to create Pr
 ## TODO
 - [x] Add 3D wireframe highlighting to hex tiles
 - [x] Make the normal 3D pipeline more intricate for collapsing with objects with different heights and more complex shapes
+- [x] Add WFC debugging visualization (2D grid view, progress bar, speed slider, live log)
+- [x] Support multi-layer z-level bridging with asymmetric socket pairs (1/1F)
 - [ ] Add more PCG tools like Perlin Noise, as options 
 - [ ] Runtime generation in games
+
+### Socket System Enhancements
+- [ ] **Rotation-Aware Sockets** - Add `R90`, `R180`, `R270` suffixes for rotation variants (enables curves, turns, bends)
+- [ ] **Multi-Layer Sockets** - Add `U` (up-only), `D` (down-only), `V` (vertical) suffixes for z-level stacking
+- [ ] **Directional Sockets** - Add `N`, `S`, `E`, `W` suffixes for cardinal-direction-only connections (one-way paths)
+- [ ] **Chain Sockets** - Add `C1`, `C2`, `C3` cyclic chain variants (dinosaur spine, tentacle segments)
+- [ ] **Tile Auto-Rotation** - Auto-generate rotated variants from a single base tile with symmetry flags
 
 
 ## ``NOTE``
