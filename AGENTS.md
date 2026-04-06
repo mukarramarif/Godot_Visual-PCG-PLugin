@@ -48,22 +48,22 @@ pcg_plugin/
 
 ```
 plugin_entry.gd (EditorPlugin)
-    |
-    +-- PcgEditScene.tscn -> TileSocketEditor.gd (Bottom Panel "PCG Visual")
-    |       |
-    |       +-- 3D Preview (SubViewport + Camera3D + Lights)
-    |       +-- Tile Library (ItemList)
-    |       +-- Socket Editor (LineEdits per direction)
-    |       +-- HighlighCube.gd (Visual socket overlay)
-    |       +-- JSON Save/Load
-    |
-    +-- WaveFunctionCollapse.gd (WFC Engine - child node)
-            |
-            +-- Grid initialization
-            +-- Constraint propagation
-            +-- Backtracking
-            +-- Error analysis
-            +-- Tile instantiation
+	|
+	+-- PcgEditScene.tscn -> TileSocketEditor.gd (Bottom Panel "PCG Visual")
+	|       |
+	|       +-- 3D Preview (SubViewport + Camera3D + Lights)
+	|       +-- Tile Library (ItemList)
+	|       +-- Socket Editor (LineEdits per direction)
+	|       +-- HighlighCube.gd (Visual socket overlay)
+	|       +-- JSON Save/Load
+	|
+	+-- WaveFunctionCollapse.gd (WFC Engine - child node)
+			|
+			+-- Grid initialization
+			+-- Constraint propagation
+			+-- Backtracking
+			+-- Error analysis
+			+-- Tile instantiation
 
 PCGNode.gd (Runtime node for in-game generation)
 ```
@@ -116,15 +116,15 @@ Three-panel layout:
   "tile_size": 2.0,
   "tile_spacing": 0.0,
   "tiles": {
-    "tile_name": {
-      "name": "tile_name",
-      "file_path": "res://path/to/model.glb",
-      "type": "3d",
-      "format": "glb",
-      "weight": 1.0,
-      "sockets": {"north": "1S", "south": "1S", "east": "1S", "west": "1S", "up": "-1", "down": "0"},
-      "neighbors": {"north": [{"tile": "other_tile", "via": "south"}]}
-    }
+	"tile_name": {
+	  "name": "tile_name",
+	  "file_path": "res://path/to/model.glb",
+	  "type": "3d",
+	  "format": "glb",
+	  "weight": 1.0,
+	  "sockets": {"north": "1S", "south": "1S", "east": "1S", "west": "1S", "up": "-1", "down": "0"},
+	  "neighbors": {"north": [{"tile": "other_tile", "via": "south"}]}
+	}
   }
 }
 ```

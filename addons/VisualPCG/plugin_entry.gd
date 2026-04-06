@@ -61,8 +61,13 @@ func show_detailed_error_dialog(error: Dictionary) -> void:
 	dialog.title = "WFC Generation Failed"
 	dialog.dialog_hide_on_ok = true
 
+	var scroll_container = ScrollContainer.new()
+	scroll_container.custom_minimum_size = Vector2(580, 450)
+	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+
 	var main_container = VBoxContainer.new()
-	main_container.custom_minimum_size = Vector2(550, 400)
+	main_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_container.add_child(main_container)
 
 	# Error title with icon
 	var title_hbox = HBoxContainer.new()
@@ -119,6 +124,10 @@ func show_detailed_error_dialog(error: Dictionary) -> void:
 		suggest_title.add_theme_color_override("font_color", Color(0.3, 0.9, 0.4))
 		main_container.add_child(suggest_title)
 
+		var suggest_scroll = ScrollContainer.new()
+		suggest_scroll.custom_minimum_size.y = 120
+		suggest_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 		var suggest_container = VBoxContainer.new()
 		for i in range(suggestions.size()):
 			var suggestion = suggestions[i]
@@ -126,7 +135,30 @@ func show_detailed_error_dialog(error: Dictionary) -> void:
 			s_label.text = "%d. %s" % [i + 1, suggestion]
 			s_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 			suggest_container.add_child(s_label)
-		main_container.add_child(suggest_container)
+		suggest_scroll.add_child(suggest_container)
+		main_container.add_child(suggest_scroll)
+
+	# Socket compatibility map section
+	var socket_map = error.get("socket_map", "")
+	if socket_map != "":
+		main_container.add_child(HSeparator.new())
+
+		var map_title = Label.new()
+		map_title.text = "🔗 Socket Compatibility Map:"
+		map_title.add_theme_font_size_override("font_size", 14)
+		map_title.add_theme_color_override("font_color", Color(0.5, 0.8, 1.0))
+		main_container.add_child(map_title)
+
+		var map_scroll = ScrollContainer.new()
+		map_scroll.custom_minimum_size.y = 100
+
+		var map_text = RichTextLabel.new()
+		map_text.bbcode_enabled = true
+		map_text.fit_content = true
+		map_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		map_text.text = socket_map
+		map_scroll.add_child(map_text)
+		main_container.add_child(map_scroll)
 
 	# Problematic tiles section
 	var prob_tiles = error.get("problematic_tiles", {})
@@ -160,7 +192,7 @@ func show_detailed_error_dialog(error: Dictionary) -> void:
 
 		main_container.add_child(tiles_container)
 
-	dialog.add_child(main_container)
+	dialog.add_child(scroll_container)
 	get_editor_interface().get_base_control().add_child(dialog)
 	dialog.popup_centered(Vector2i(600, 500))
 	dialog.confirmed.connect(func(): dialog.queue_free())

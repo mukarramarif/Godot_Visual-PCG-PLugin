@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://b781fx5v4f4ou" path="res://world.gd" id="1_f3sb7"]
 [ext_resource type="Script" uid="uid://726d8cvohewt" path="res://addons/VisualPCG/PCGNode.gd" id="2_tlwt5"]
-[ext_resource type="JSON" path="res://tileset.json" id="3_aqk2v"]
+[ext_resource type="JSON" path="res://tilesetSqaure.json" id="3_aqk2v"]
 [ext_resource type="PackedScene" uid="uid://rpul1ml4xa60" path="res://player.tscn" id="4_aqk2v"]
 
 [node name="World" type="Node3D" unique_id=989255957]
@@ -11,6 +11,7 @@ script = ExtResource("1_f3sb7")
 [node name="PCGNode" type="Node3D" parent="." unique_id=1703878924]
 script = ExtResource("2_tlwt5")
 map_detail = ExtResource("3_aqk2v")
+grid_size = Vector3i(10, 5, 2)
 Collision = true
 metadata/_custom_type_script = "uid://726d8cvohewt"
 
